@@ -1,0 +1,13 @@
+1675371480409	geckodriver	INFO	Listening on 127.0.0.1:50182
+1675371483456	mozrunner::runner	INFO	Running command: "C:\\Program Files\\Mozilla Firefox\\firefox.exe" "--marionette" "--headless" "--remote-debugging-port" "501 ... 3" "--remote-allow-hosts" "localhost" "-no-remote" "-profile" "C:\\Users\\miker\\AppData\\Local\\Temp\\rust_mozprofileTvqwMF"
+*** You are running in headless mode.
+1675371483801	Marionette	INFO	Marionette enabled
+Dynamically enable window occlusion 0
+1675371483808	Marionette	INFO	Listening on port 50199
+WebDriver BiDi listening on ws://127.0.0.1:50183
+Read port: 50199
+1675371484041	RemoteAgent	WARN	TLS certificate errors will be ignored for this session
+[GFX1-]: RenderCompositorSWGL failed mapping default framebuffer, no dt
+console.warn: SearchSettings: "get: No settings file exists, new profile?" (new NotFoundError("Could not open the file at C:\\Users\\miker\\AppData\\Local\\Temp\\rust_mozprofileTvqwMF\\search.json.mozlz4", (void 0)))
+DevTools listening on ws://127.0.0.1:50183/devtools/browser/86c7277e-b21b-45ae-903e-75d4a94995c6
+console.warn: LoginRecipes: "Falling back to a synchronous message for: https://cdcs.ur.rochester.edu."
