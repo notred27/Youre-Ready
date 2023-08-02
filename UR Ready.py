@@ -28,6 +28,51 @@ import lxml.html
 # Update dynamic scroll bar resizing
 
 # Bug with scroll bar not showing up
+
+class VerticalScrolledFrame(ttk.Frame):
+    def __init__(self, parent, *args, **kw):
+        ttk.Frame.__init__(self, parent, *args, **kw)
+ 
+        # Create a canvas object and a vertical scrollbar for scrolling it.
+        vscrollbar = ttk.Scrollbar(self, orient=VERTICAL)
+        vscrollbar.pack(fill=Y, side=RIGHT, expand=FALSE)
+        self.canvas = Canvas(self, bd=0, highlightthickness=0, 
+                                width = 200, height = 300,
+                                yscrollcommand=vscrollbar.set)
+        self.canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
+        vscrollbar.config(command = self.canvas.yview)
+ 
+        # Reset the view
+        self.canvas.xview_moveto(0)
+        self.canvas.yview_moveto(0)
+ 
+        # Create a frame inside the canvas which will be scrolled with it.
+        self.interior = ttk.Frame(self.canvas)
+        self.interior.bind('<Configure>', self._configure_interior)
+        self.canvas.bind('<Configure>', self._configure_canvas)
+        self.interior_id = self.canvas.create_window(0, 0, window=self.interior, anchor=NW)
+ 
+ 
+    def _configure_interior(self, event):
+        # Update the scrollbars to match the size of the inner frame.
+        size = (self.interior.winfo_reqwidth(), self.interior.winfo_reqheight())
+        self.canvas.config(scrollregion=(0, 0, size[0], size[1]))
+        if self.interior.winfo_reqwidth() != self.canvas.winfo_width():
+            # Update the canvas's width to fit the inner frame.
+            self.canvas.config(width = self.interior.winfo_reqwidth())
+         
+    def _configure_canvas(self, event):
+        if self.interior.winfo_reqwidth() != self.canvas.winfo_width():
+            # Update the inner frame's width to fill the canvas.
+            self.canvas.itemconfigure(self.interior_id, width=self.canvas.winfo_width())
+
+    def _clear_contents(self):
+        for c in self.interior.winfo_children():
+            c.destroy()
+
+
+
+
 theme = ["#E85A4F", "#E98074", "#8E8D8A", "#D8C3A5", "#EAE7DC"]
 
 
@@ -82,18 +127,17 @@ def make_text(parent, dict):
     
 
 def create_class_pane(dict):
-    global classParent
-    f=Frame(classParent,  relief= GROOVE, bd=3, bg = "white")
+    f=Frame(result_courses_pane.interior,  relief= GROOVE, bd=3, bg = "white")
     make_text(f,dict)
     btn = Button(f, text="Add to Schedule", height = 1, command=lambda *args: add_course(dict)).pack(side = BOTTOM, anchor="se", padx = 4, pady = 4)
     f.pack(pady = 5)
-    # classParent.configure(height = classParent.winfo_height() + 100)
-    # classParent.update_idletasks()
+
+
+
 
 #FIXME find out how to use tags to easily locate panes for different courses
 def added_class_pane(dict):
-    global classParent
-    f=Frame(classParent,  relief= GROOVE, bd=3, bg = "white", name = dict["Title"].lower())
+    f=Frame(cur_courses_pane.interior,  relief= GROOVE, bd=3, bg = "white", name = dict["Title"].lower())
     make_text(f,dict)
     Button(f, text="Remove from Schedule", height = 1, command=lambda *args: remove_course(dict, f)).pack(side = RIGHT, anchor="se", padx = 4, pady = 4)
 
@@ -134,10 +178,10 @@ def update_overlap():       #FIXME update so that this also controls the colors 
                     if not other == course and day in other["Days"] and other["Showing"] and ((other["Start"] <= course["Start"] and course["Start"] <= other["End"]) or (course["Start"] <= other["Start"] and other["Start"] <= course["End"])):
                         overlap = True
                         #TODO send out a notif to other panes that they are overlapped
-                        try:
-                            change_wiget_color("#ffc2cc", classParent.nametowidget(other["Title"].lower()))
-                        except:
-                            pass
+                        # try:
+                        #     # change_wiget_color("#ffc2cc", classParent.nametowidget(other["Title"].lower())) FIXME
+                        # except:
+                        #     pass
 
 def change_wiget_color(color, widget):
     widget["bg"] = color
@@ -314,35 +358,39 @@ def create_rounded_square(canvas, x, y, width, height, color, r = 10):
 
 
 
-# Functions for changing display on pages
+# Functions for changing display on pages           #FIXME remove this??
 def change_displayed_courses(startI, endI):
-    global classParent
-    # classParent.configure(height = 0)
-    scroll.set(0.0, scroll.get()[1] - scroll.get()[0])
-    classParent.destroy()
-    classParent = Frame(canvas)
+
+    # result_courses_pane._clear_contents()
+    for c in result_courses_pane.interior.winfo_children():
+        c.destroy()
+    
+
 
     for entry in range(startI-1,endI):
         create_class_pane(loadData[entry])              
 
-    canvas.create_window(0, 0, anchor='nw', window=classParent)
-    canvas.update_idletasks()
 
 def next_page():
     global indxS, indxE
+
+    print(indxS, indxE)
     if indxS + 50 <= numResults:
         indxS += 50
         indxE = min(indxS + 49, numResults)
-        scroll_text['text'] = "Showing " + str(indxS) + "-" + str(indxE) + " of " + str(numResults)
+        # scroll_text['text'] = "Showing " + str(indxS) + "-" + str(indxE) + " of " + str(numResults)
         change_displayed_courses(indxS, indxE)
 
 
 def prev_page():
     global indxS, indxE
+
+    print(indxS, indxE)
+
     if indxS - 50 >= 1:
         indxS -= 50
         indxE = min(indxS + 49, numResults)
-        scroll_text['text'] = "Showing " + str(indxS) + "-" + str(indxE) + " of " + str(numResults)
+        # scroll_text['text'] = "Showing " + str(indxS) + "-" + str(indxE) + " of " + str(numResults)
         change_displayed_courses(indxS, indxE)
 
 def reset_page():
@@ -352,7 +400,7 @@ def reset_page():
     indxE = min(50, len(loadData))
     numResults = len(loadData)
     
-    scroll_text['text'] = "Showing " + str(indxS) + "-" + str(indxE) + " of " + str(numResults)
+    # scroll_text['text'] = "Showing " + str(indxS) + "-" + str(indxE) + " of " + str(numResults)
     
     change_displayed_courses(indxS, indxE)
 
@@ -364,21 +412,24 @@ def check_if_ready(thread):
         root.after(200, check_if_ready, thread)
     else:
         print("Thread has terminated, updating page")
-        if results_swap_btn["text"] ==  "Show Availible Courses":
-            swap_panes()
+        # if results_swap_btn["text"] ==  "Show Availible Courses":
+        #     swap_panes()
         reset_page()
 
 
 def fetch(term, dept ="", type = "", courseName = ""):
 
-    if results_swap_btn["text"] ==  "Show Availible Courses":
-            swap_panes()
+    # if results_swap_btn["text"] ==  "Show Availible Courses":
+    #         swap_panes()
 
 
-    for c in classParent.winfo_children():
-        c.destroy()
+    # result_courses_pane._clear_contents()
 
-    textx = Label(classParent, text = "Searching for results...", font = ("helvetica", 20)).pack()
+    for c in result_courses_pane.interior.winfo_children():
+            c.destroy()
+     
+
+    textx = Label(result_courses_pane.interior, text = "Searching for results...", font = ("helvetica", 20)).pack()
 
     courseName = courseSelect.get("1.0",END)
     desc = titleSelect.get("1.0",END)
@@ -594,9 +645,20 @@ draw_header()
 
 calander_frame.pack(side=RIGHT, anchor = "n", pady = 10, padx = 10)
 #===================== Search Component =====================#
+tabview = ttk.Notebook(root,  height = 600, width = 400)
+search = ttk.Frame(tabview)
+results = ttk.Frame(tabview)
+classes = ttk.Frame(tabview)
+
+tabview.add(search, text ='Search')
+tabview.add(results, text ='Results')
+tabview.add(classes, text ='Current Classes')
 
 
-searchPane = Frame(root, width = 200, height = 100, relief=GROOVE, bd = 2)
+tabview.pack(expand = 1, fill ="both")
+
+
+searchPane = Frame(search, width = 200, height = 100, relief=GROOVE, bd = 2)
 
 
 styleT = ttk.Style()
@@ -656,26 +718,27 @@ searchPane.pack(anchor="nw", padx =10)
 
 showResults = False
 def swap_panes():
-    global classParent, showResults, results_swap_btn
+    # global classParent, showResults, results_swap_btn
 
-    scroll.set(0.0, scroll.get()[1] - scroll.get()[0])
-    classParent.destroy()
-    classParent = Frame(canvas)
+    # scroll.set(0.0, scroll.get()[1] - scroll.get()[0])
+    # classParent.destroy()
+    # classParent = Frame(canvas)
 
 
-    if showResults:
-        for entry in range(indxS-1,indxE):
-            create_class_pane(loadData[entry])  
-        showResults = FALSE
-        results_swap_btn["text"] = "Show Chosen Courses" 
-    else:
-        for entry in range(0,len(current_classes)):
-            added_class_pane(current_classes[entry])   
-        showResults = True           
-        results_swap_btn["text"] =  "Show Availible Courses"
+    # if showResults:
+    #     for entry in range(indxS-1,indxE):
+    #         create_class_pane(loadData[entry])  
+    #     showResults = FALSE
+    #     results_swap_btn["text"] = "Show Chosen Courses" 
+    # else:
+    #     for entry in range(0,len(current_classes)):
+    #         added_class_pane(current_classes[entry])   
+    #     showResults = True           
+    #     results_swap_btn["text"] =  "Show Availible Courses"
 
-    canvas.create_window(0, 0, anchor='nw', window=classParent)
-    canvas.update_idletasks()
+    # canvas.create_window(0, 0, anchor='nw', window=classParent)
+    # canvas.update_idletasks()
+    print("FIXME")
 
 
 
@@ -684,38 +747,37 @@ def swap_panes():
 
 #===================== Results Component =====================#
 
-scrolingPane = Frame(root,  relief= GROOVE, bd=3, height = 800)
-scroll_title = Label(scrolingPane, text="Results", font=("Helvetica 8 bold")).pack(anchor = "nw")
+#
+scroll_title = Label(results, text="Results", font=("Helvetica 8 bold")).pack(anchor = "nw")
 
-results_swap_btn = Button(scrolingPane, text = "Show Chosen Courses", command=swap_panes)
-results_swap_btn.pack(anchor = "ne", side = TOP)
+scrolingPane = Frame(results,  relief= GROOVE, bd=3, height = 800)
 
-
-canvas = Canvas(scrolingPane,width=390, height = 420)
-scroll = Scrollbar(scrolingPane, orient="vertical", command=canvas.yview)
-
-classParent = Frame(canvas, height = 14700)
+result_courses_pane = VerticalScrolledFrame(scrolingPane)
+result_courses_pane.pack()
+scrolingPane.pack()
 
 
-classParent.pack_forget()
+scroll_next = Button(results, text="Next", command=next_page, anchor="se",).pack(side = RIGHT)
+scroll_prev = Button(results, text="Prev", command=prev_page, anchor="sw").pack(side = LEFT)
 
-canvas.create_window(0, 0, anchor='nw', window=classParent)
-canvas.update_idletasks()
-canvas.configure(scrollregion=canvas.bbox('all'), yscrollcommand=scroll.set)
-    
-scroll.pack(fill='y', side='left', anchor='w')
-canvas.pack(fill='both', expand=True, side='top')
-
-scroll_next = Button(scrolingPane, text="Next", command=next_page, anchor="se",).pack(side = RIGHT)
-scroll_prev = Button(scrolingPane, text="Prev", command=prev_page, anchor="sw").pack(side = LEFT)
-
-scroll_text = Label(scrolingPane, text="Showing " + str(indxS) + "-" + str(indxE) + " of " + str(numResults), font=("Helvetica 6 bold"))
-scroll_text.pack(side = BOTTOM)
+# scroll_text = Label(results, text="Showing " + str(indxS) + "-" + str(indxE) + " of " + str(numResults), font=("Helvetica 6 bold"))
+# scroll_text.pack(anchor = "s")
 
 
-scrolingPane.pack(anchor = 'nw', padx = 10)
+
+# scrolingPane.pack(anchor = 'nw', padx = 10)
 
 
+#===================== Current Courses Component =====================#
+
+cur_courses_pane = VerticalScrolledFrame(classes)
+
+
+cur_courses_pane.pack()
+
+# Load all of the current saved clsses into the scroll pane     FIXME create a scrolling pane for this window
+for entry in range(0,len(current_classes)):
+        added_class_pane(current_classes[entry]) 
 
 
 
