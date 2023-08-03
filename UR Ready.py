@@ -13,8 +13,7 @@ import lxml.html
 
 
 #TODO: fix minor errors,  restrictions scraping (addig bold to this text), class type scraping, red tint if filled/ unavailable class, 
-#  dropdown menues for selected courses, add graphical 
-# elements when searching for quereys / no results are found
+#  dropdown menues for selected courses, add graphical elements when searching for quereys / no results are found
 
 # Add a check that if someone signs up for a workshop, they also sign up for the lecture (dropdown menu for workshop classes from main lecture class?)
 
@@ -29,6 +28,11 @@ import lxml.html
 
 # Bug with scroll bar not showing up
 
+
+
+# TODO for overlapping classes, add a yellow triangle in the bottom right with the number of classes in that space
+# For writing classes, workshops, recitations, add something to make it stand out on the calender
+
 class VerticalScrolledFrame(ttk.Frame):
     def __init__(self, parent, *args, **kw):
         ttk.Frame.__init__(self, parent, *args, **kw)
@@ -37,7 +41,7 @@ class VerticalScrolledFrame(ttk.Frame):
         vscrollbar = ttk.Scrollbar(self, orient=VERTICAL)
         vscrollbar.pack(fill=Y, side=RIGHT, expand=FALSE)
         self.canvas = Canvas(self, bd=0, highlightthickness=0, 
-                                width = 200, height = 300,
+                                width = 400, height = 550,
                                 yscrollcommand=vscrollbar.set)
         self.canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
         vscrollbar.config(command = self.canvas.yview)
@@ -75,8 +79,6 @@ class VerticalScrolledFrame(ttk.Frame):
 
 theme = ["#E85A4F", "#E98074", "#8E8D8A", "#D8C3A5", "#EAE7DC"]
 
-
-
 loadData = []  # json.loads(open("scraped_classes.json", "r").read())
 load_dropbox = json.loads(open("dropbox_info.json", "r").read())
 
@@ -104,6 +106,25 @@ browser = webdriver.Firefox(options=options)
 browser.implicitly_wait(sleepTime)
 
 
+def time_to_str(time):
+    if type(time) is int:
+        ret = time
+        if ret > 1300:
+            ret -= 1200
+        
+        ret = str(ret)
+        
+
+        ret = ret[:-2] + ":" + ret[-2:]
+
+        if time >= 1200:
+            ret += "pm"
+        else:
+            ret += "am"
+        return ret
+    return ""
+
+
 def make_text(parent, dict):
     text = Text(parent,  font="Helvetica 9", spacing1=5, wrap=WORD, height = 12, width=55, bd = 0)
     text.tag_configure("r", font="Helvetica 9")
@@ -113,7 +134,7 @@ def make_text(parent, dict):
 
     text.insert("end", dict["Title"] + "\n","blue") 
     text.insert("end", "                                                " + dict["Term"] + "\n", "bold" ) 
-    text.insert("end", "Days: ","bold", str("".join(dict["Days"])), "r","   Start: ", "bold", str(dict["Start"]), "r", "  End: ","bold", (str(dict["End"])), "r",  "                Credit: " + dict["Credit"] + "\n", 'red')
+    text.insert("end", "Days: ","bold", str("".join(dict["Days"])), "r","   Start: ", "bold", time_to_str(dict["Start"]), "r", "  End: ","bold", ( time_to_str(dict["End"])), "r",  "                Credit: " + dict["Credit"] + "\n", 'red')
     text.insert("end", "Enrolled: ","bold", dict["Enrolled"] + '/' + dict["Capacity"] + "\n") 
     text.insert("end", "Instructor: ","bold", dict["Instructor"] + "\n") 
     text.insert("end", "Room: ","bold", dict["Room"] + "\n") 
@@ -126,20 +147,31 @@ def make_text(parent, dict):
     text.pack()
     
 
-def create_class_pane(dict):
+def create_search_result_pane(dict):
     f=Frame(result_courses_pane.interior,  relief= GROOVE, bd=3, bg = "white")
     make_text(f,dict)
-    btn = Button(f, text="Add to Schedule", height = 1, command=lambda *args: add_course(dict)).pack(side = BOTTOM, anchor="se", padx = 4, pady = 4)
+    Button(f, text="Add to Schedule", height = 1, command=lambda *args: add_course_to_schedule(dict)).pack(side = BOTTOM, anchor="se", padx = 4, pady = 4)
     f.pack(pady = 5)
 
+
+def add_course_to_schedule(course):
+    if course not in current_classes:
+        current_classes.append(course)
+        create_added_class_pane(course)
+        for day in course["Days"]:
+            draw_class( day, " ".join(course["Title"].split(" ")[0:3]), course["Start"], color = "blue")
+    update_overlap()
+    draw_cal()
+    draw_header()
+        
 
 
 
 #FIXME find out how to use tags to easily locate panes for different courses
-def added_class_pane(dict):
+def create_added_class_pane(dict):
     f=Frame(cur_courses_pane.interior,  relief= GROOVE, bd=3, bg = "white", name = dict["Title"].lower())
     make_text(f,dict)
-    Button(f, text="Remove from Schedule", height = 1, command=lambda *args: remove_course(dict, f)).pack(side = RIGHT, anchor="se", padx = 4, pady = 4)
+    Button(f, text="Remove from Schedule", height = 1, command=lambda *args: remove_course_from_schedule(dict, f)).pack(side = RIGHT, anchor="se", padx = 4, pady = 4)
 
     var = tkinter.IntVar()
     var.set(int(not dict["Showing"]))
@@ -147,8 +179,18 @@ def added_class_pane(dict):
     f.pack(pady = 5)
 
     toggle_show(dict, var)
-    # classParent.configure(height = classParent.winfo_height() + 100)
-    # classParent.update_idletasks()
+
+
+def remove_course_from_schedule(course, frame):
+    global plan
+    if(course in current_classes):
+        current_classes.remove(course)
+        frame.destroy()
+    draw_cal()
+    draw_header()
+
+
+
 
 def toggle_show(course, var):   #Intermediate function to work with IntVar so courses can be serialized using json
     #FIXME add color changes to pane here (and maybe add_class_pane) so they update when classes are changed
@@ -156,7 +198,7 @@ def toggle_show(course, var):   #Intermediate function to work with IntVar so co
         course["Showing"] = True
     else:
         course["Showing"] = False
-        change_wiget_color("#c7cdd6", classParent.nametowidget(course["Title"].lower()))
+        change_wiget_color("#c7cdd6", cur_courses_pane.interior.nametowidget(course["Title"].lower()))
         
     update_overlap()
     draw_cal()
@@ -166,7 +208,7 @@ def update_overlap():       #FIXME update so that this also controls the colors 
     for course in current_classes:
         if course["Showing"]:
             try:
-                change_wiget_color("white", classParent.nametowidget(course["Title"].lower()))
+                change_wiget_color("white", cur_courses_pane.interior.nametowidget(course["Title"].lower()))
             except:
                 pass
 
@@ -178,10 +220,10 @@ def update_overlap():       #FIXME update so that this also controls the colors 
                     if not other == course and day in other["Days"] and other["Showing"] and ((other["Start"] <= course["Start"] and course["Start"] <= other["End"]) or (course["Start"] <= other["Start"] and other["Start"] <= course["End"])):
                         overlap = True
                         #TODO send out a notif to other panes that they are overlapped
-                        # try:
-                        #     # change_wiget_color("#ffc2cc", classParent.nametowidget(other["Title"].lower())) FIXME
-                        # except:
-                        #     pass
+                        try:
+                            change_wiget_color("#ffc2cc", cur_courses_pane.interior.nametowidget(other["Title"].lower())) 
+                        except:
+                            pass
 
 def change_wiget_color(color, widget):
     widget["bg"] = color
@@ -201,22 +243,9 @@ def change_wiget_color(color, widget):
         else:
             pass
 
-def add_course(course):
-    if course not in current_classes:
-        current_classes.append(course)
-        added_class_pane(course)
-        for day in course["Days"]:
-            add_class( day, " ".join(course["Title"].split(" ")[0:3]), course["Start"], color = "red")
-        print(len(current_classes))
 
-def remove_course(course, frame):
-    global plan, num_credits_label, num_classes_label
-    if(course in current_classes):
-        current_classes.remove(course)
-        frame.destroy()
-    draw_cal()
-    draw_header()
-    print(len(current_classes))
+
+
 
 
 def draw_header():
@@ -245,7 +274,16 @@ def draw_header():
 
    
 
+def get_num_credits():
+    num_credits = 0
 
+    for course in current_classes:
+        if course["Showing"]:
+            try:
+                num_credits += float(course["Credit"])
+            except:
+                pass
+    return num_credits
 
 
 
@@ -280,25 +318,16 @@ def draw_cal(): #  Draw the background for the calender
             for day in course["Days"]:
                 # TODO maybe change background pane to pink for classes that are overlapping?
                 if overlap:
-                    add_class(day, " ".join(course["Title"].split(" ")[0:2]), course["Start"], color = "red")
+                    draw_class(day, " ".join(course["Title"].split(" ")[0:2]), course["Start"], color = "red")
                 else:
-                    add_class(day, " ".join(course["Title"].split(" ")[0:2]), course["Start"], color = "blue")
+                    draw_class(day, " ".join(course["Title"].split(" ")[0:2]), course["Start"], color = "blue")
 
     
     
-def get_num_credits():
-    num_credits = 0
-
-    for course in current_classes:
-        if course["Showing"]:
-            try:
-                num_credits += float(course["Credit"])
-            except:
-                pass
-    return num_credits
 
 
-def add_class(day = "", title = "", timeStart = 0, length = 115, color = "blue"):   #Add a block to the calender
+
+def draw_class(day = "", title = "", timeStart = 0, length = 115, color = "blue"):   #Add a block to the calender
     time = timeStart - 700
     rem = time % 100
     y = (time // 100) * 40 + ((rem / 60) * 40) + 10
@@ -328,17 +357,6 @@ def add_class(day = "", title = "", timeStart = 0, length = 115, color = "blue")
 
 
     create_rounded_square(plan, x,y, 80 , lengthOff, color)
-    # plan.create_rectangle(x + 10,y,x + 70,y + lengthOff + 1, fill = color,width = 0)
-    # plan.create_rectangle(x ,y + 10 ,x + 81,y + lengthOff - 10, fill = color, width = 0)
-
-
-    # plan.create_oval(x, y, x + 20, y + 20, fill = color,width = 0) # top left
-    # plan.create_oval(x + 60, y, x + 80, y + 20, fill = color,width = 0) # top right
-
-    # plan.create_oval(x, y + lengthOff - 20, x + 20, y + lengthOff, fill = color,width = 0) # bot left
-    # plan.create_oval(x + 60,  y + lengthOff - 20, x + 80,  y + lengthOff, fill = color,width = 0) # bot right
-
-
 
 
     plan.create_text(x + 4, y + 2, anchor="nw", text = title, fill  = 'white',font=("helvetica",10) )
@@ -346,7 +364,6 @@ def add_class(day = "", title = "", timeStart = 0, length = 115, color = "blue")
 
 
 def create_rounded_square(canvas, x, y, width, height, color, r = 10):
-
     canvas.create_rectangle(x + r,y,x +width - r ,y + height + 1, fill = color,width = 0)   # vertical
     canvas.create_rectangle(x ,y + r ,x + width + 1,y + height - r, fill = color, width = 0) #horizontal
 
@@ -358,39 +375,40 @@ def create_rounded_square(canvas, x, y, width, height, color, r = 10):
 
 
 
-# Functions for changing display on pages           #FIXME remove this??
+# Functions for changing display on pages           #FIXME error with page contents disappearing on deleating previous children
 def change_displayed_courses(startI, endI):
-
+    global result_courses_pane
     # result_courses_pane._clear_contents()
-    for c in result_courses_pane.interior.winfo_children():
-        c.destroy()
-    
+    # for c in result_courses_pane.interior.winfo_children():
+    #     c.destroy()
+    result_courses_pane.destroy()                               #FIXME quick hack for functionality
+    result_courses_pane = VerticalScrolledFrame(results)
+    result_courses_pane.pack()
 
 
     for entry in range(startI-1,endI):
-        create_class_pane(loadData[entry])              
+        create_search_result_pane(loadData[entry])  
+
+    # print(len(result_courses_pane.interior.winfo_children()))        
 
 
 def next_page():
     global indxS, indxE
 
-    print(indxS, indxE)
     if indxS + 50 <= numResults:
         indxS += 50
         indxE = min(indxS + 49, numResults)
-        # scroll_text['text'] = "Showing " + str(indxS) + "-" + str(indxE) + " of " + str(numResults)
+        scroll_text['text'] = "Showing " + str(indxS) + "-" + str(indxE) + " of " + str(numResults)
         change_displayed_courses(indxS, indxE)
 
 
 def prev_page():
     global indxS, indxE
 
-    print(indxS, indxE)
-
     if indxS - 50 >= 1:
         indxS -= 50
         indxE = min(indxS + 49, numResults)
-        # scroll_text['text'] = "Showing " + str(indxS) + "-" + str(indxE) + " of " + str(numResults)
+        scroll_text['text'] = "Showing " + str(indxS) + "-" + str(indxE) + " of " + str(numResults)
         change_displayed_courses(indxS, indxE)
 
 def reset_page():
@@ -400,8 +418,7 @@ def reset_page():
     indxE = min(50, len(loadData))
     numResults = len(loadData)
     
-    # scroll_text['text'] = "Showing " + str(indxS) + "-" + str(indxE) + " of " + str(numResults)
-    
+    scroll_text['text'] = "Showing " + str(indxS) + "-" + str(indxE) + " of " + str(numResults)
     change_displayed_courses(indxS, indxE)
 
 
@@ -412,24 +429,24 @@ def check_if_ready(thread):
         root.after(200, check_if_ready, thread)
     else:
         print("Thread has terminated, updating page")
-        # if results_swap_btn["text"] ==  "Show Availible Courses":
-        #     swap_panes()
         reset_page()
+        
 
 
 def fetch(term, dept ="", type = "", courseName = ""):
-
-    # if results_swap_btn["text"] ==  "Show Availible Courses":
-    #         swap_panes()
-
+    global result_courses_pane
+    tabview.select(results)
 
     # result_courses_pane._clear_contents()
+    # for c in result_courses_pane.interior.winfo_children():
+    #         c.destroy()
 
-    for c in result_courses_pane.interior.winfo_children():
-            c.destroy()
-     
+    result_courses_pane.destroy()                               #FIXME quick hack for functionality
+    result_courses_pane = VerticalScrolledFrame(results)
+    result_courses_pane.pack()
 
-    textx = Label(result_courses_pane.interior, text = "Searching for results...", font = ("helvetica", 20)).pack()
+    
+    
 
     courseName = courseSelect.get("1.0",END)
     desc = titleSelect.get("1.0",END)
@@ -437,6 +454,7 @@ def fetch(term, dept ="", type = "", courseName = ""):
     thread = threading.Thread(target=scrapeHTML, args=[term, dept, type,courseName,desc])
     thread.start()
     root.after(200, check_if_ready, thread)
+    
 
 
 
@@ -444,6 +462,9 @@ def fetch(term, dept ="", type = "", courseName = ""):
 def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
     global loadData
     print("Finding courses...")
+
+     #TODO make an actual element for searching
+    textx = Label(result_courses_pane.interior, text = "Searching for results...", font = ("helvetica", 20)).pack()
 
     print(term, dept, type, courseName, desc)
 
@@ -475,6 +496,7 @@ def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
     diff = (time.mktime(end_time) - time.mktime(start_time)) 
     if(diff >= sleepTime and len(tables) == 0):     # Check for timeout issues
         print(time.strftime("%H:%M:%S",end_time), " -Timeout error occured")
+        #TODO add a graphical element if a timeout connection occured
         return None
 
 
@@ -487,19 +509,6 @@ def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
         loadData.clear()
 
         try:
-            # Old slower way
-            # for x in range(0, len(tables)):
-
-            #     entry = tables[x].text.split('\n')
-            #     # Corner case for first class
-            #     if('Arts, Sciences, and Engineering Computer Science' in entry):
-            #         entry.remove('Arts, Sciences, and Engineering Computer Science')
-
-            #     loadData.append(make_course(entry))
-
-            # # Print the finishing time
-            # print(time.strftime("%H:%M:%S", time.localtime()), "    -Results parsed")
-
             browser.implicitly_wait(0.001)
 
             root = lxml.html.fromstring(browser.page_source)
@@ -603,6 +612,7 @@ def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
             print(e)
             
         browser.implicitly_wait(sleepTime)
+        return 0
 
 
 
@@ -618,19 +628,19 @@ def save_and_quit():
 
 #============================================ Set up the Tkinter window ============================================#
 # Set up the root window for the app
+print(time.strftime("%H:%M:%S", time.localtime()), "    -Creating GUI")
 
 root = Tk()
 root.title('UR Ready')  #Title for window
 root.geometry("890x650")
 root.option_add("*Font", ("Adobe Garamond Pro Bold", 10))
+# root.configure(background=theme[0])
 
 root.protocol("WM_DELETE_WINDOW", save_and_quit)
 
 #===================== Calender Component =====================#
 
 calander_frame = Frame(root, bd = 2, relief="solid")
-
-
 
 header= Canvas(calander_frame, width = 420, height = 35)
 header.pack(pady=(0,0))
@@ -639,24 +649,37 @@ plan= Canvas(calander_frame, width = 420, height = 580)
 plan.pack( anchor = 'nw', pady=(0,0))
 
 
+calander_frame.pack(side=RIGHT, anchor = "n", pady = 10, padx = 10)
 
 draw_cal()
 draw_header()
 
-calander_frame.pack(side=RIGHT, anchor = "n", pady = 10, padx = 10)
-#===================== Search Component =====================#
+#===================== Set Up Tabview =====================#
+
+# Create an instance of ttk style
+# s = ttk.Style()
+# s.theme_use('default')
+# s.configure('TNotebook.Tab', background=theme[1])
+# s.map("TNotebook", background= [("selected", theme[1])])
+
+
 tabview = ttk.Notebook(root,  height = 600, width = 400)
 search = ttk.Frame(tabview)
 results = ttk.Frame(tabview)
 classes = ttk.Frame(tabview)
+requirements = ttk.Frame(tabview)
 
 tabview.add(search, text ='Search')
 tabview.add(results, text ='Results')
 tabview.add(classes, text ='Current Classes')
-
+tabview.add(requirements, text ='Requirements')
 
 tabview.pack(expand = 1, fill ="both")
 
+
+
+
+#===================== Search Component =====================#
 
 searchPane = Frame(search, width = 200, height = 100, relief=GROOVE, bd = 2)
 
@@ -689,10 +712,6 @@ subjectSelect.bind("<<ComboboxSelected>>",lambda e: searchPane.focus())
 subjectSelect.pack()
 
 
-
-
-
-
 typeTitle = Label(searchLeft, text="Course Type:").pack(anchor='w')
 typeSelect = ttk.Combobox(searchLeft,width = 32, state="readonly", values = (xmlSrc.xpath('//*[@id="ddlTypes"]/option/text()')))
 
@@ -717,28 +736,6 @@ searchPane.pack(anchor="nw", padx =10)
 
 
 showResults = False
-def swap_panes():
-    # global classParent, showResults, results_swap_btn
-
-    # scroll.set(0.0, scroll.get()[1] - scroll.get()[0])
-    # classParent.destroy()
-    # classParent = Frame(canvas)
-
-
-    # if showResults:
-    #     for entry in range(indxS-1,indxE):
-    #         create_class_pane(loadData[entry])  
-    #     showResults = FALSE
-    #     results_swap_btn["text"] = "Show Chosen Courses" 
-    # else:
-    #     for entry in range(0,len(current_classes)):
-    #         added_class_pane(current_classes[entry])   
-    #     showResults = True           
-    #     results_swap_btn["text"] =  "Show Availible Courses"
-
-    # canvas.create_window(0, 0, anchor='nw', window=classParent)
-    # canvas.update_idletasks()
-    print("FIXME")
 
 
 
@@ -747,25 +744,23 @@ def swap_panes():
 
 #===================== Results Component =====================#
 
-#
-scroll_title = Label(results, text="Results", font=("Helvetica 8 bold")).pack(anchor = "nw")
 
-scrolingPane = Frame(results,  relief= GROOVE, bd=3, height = 800)
 
-result_courses_pane = VerticalScrolledFrame(scrolingPane)
-result_courses_pane.pack()
+scrolingPane = Frame(results, bd=0, width = 400)
+
+scroll_next = Button(scrolingPane, text="Next", command=next_page, anchor="ne",).pack(side = RIGHT)
+scroll_prev = Button(scrolingPane, text="Prev", command=prev_page, anchor="nw").pack(side = LEFT)
+
+scroll_text = Label(scrolingPane, text="Showing " + str(indxS) + "-" + str(indxE) + " of " + str(numResults), font=("Helvetica 10 bold"))
+scroll_text.pack(side = TOP, padx = 100)
+
 scrolingPane.pack()
 
-
-scroll_next = Button(results, text="Next", command=next_page, anchor="se",).pack(side = RIGHT)
-scroll_prev = Button(results, text="Prev", command=prev_page, anchor="sw").pack(side = LEFT)
-
-# scroll_text = Label(results, text="Showing " + str(indxS) + "-" + str(indxE) + " of " + str(numResults), font=("Helvetica 6 bold"))
-# scroll_text.pack(anchor = "s")
+result_courses_pane = VerticalScrolledFrame(results)
+result_courses_pane.pack()
+# scrolingPane.pack()
 
 
-
-# scrolingPane.pack(anchor = 'nw', padx = 10)
 
 
 #===================== Current Courses Component =====================#
@@ -777,11 +772,11 @@ cur_courses_pane.pack()
 
 # Load all of the current saved clsses into the scroll pane     FIXME create a scrolling pane for this window
 for entry in range(0,len(current_classes)):
-        added_class_pane(current_classes[entry]) 
+    create_added_class_pane(current_classes[entry]) 
 
 
 
-
+print(time.strftime("%H:%M:%S", time.localtime()), "    -Starting Program")
 root.mainloop()
 
 

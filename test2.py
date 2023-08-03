@@ -53,20 +53,58 @@ root.option_add("*Font", ("Adobe Garamond Pro Bold", 10))
 
 frame = VerticalScrolledFrame(root)
 frame.pack()
-for i in range(1, 50):
+for i in range(1, 2):
     f = Frame(frame.interior, width = 100, height = 50, bg="red")
     f.pack(pady = 10)
 
+def next():
+    for child in frame.interior.winfo_children():
+        child.destroy()
 
-frame2 = VerticalScrolledFrame(root)
-frame2.pack()
-# for i in range(1, 50):
-#     f = Frame(frame2.interior, width = 100, height = 50, bg="red")
-#     f.pack(pady = 10)
+    # frame2 = VerticalScrolledFrame(root)
+    # frame2.pack()
+    for i in range(1, 500):
+        f = Frame(frame.interior, width = 100, height = 50, bg="blue")
+        f.pack(pady = 10)
+
+def drop():
+    frame.interior.winfo_children()[0]["height"] = 100
+    f2 = Frame(frame.interior.winfo_children()[0], width = 100, height = 10, bg = "blue")
+    # t = Text(f2, wrap="word", width = 100)
+    # t.insert("end", "LOREM IPSUM LOREM IPSUM LOREM IPSUM LOREM IPSUM LOREM IPSUM LOREM IPSUM LOREM IPSUM LOREM IPSUM LOREM IPSUM LOREM IPSUM LOREM IPSUM LOREM IPSUM LOREM IPSUM LOREM IPSUM LOREM IPSUM ")
+    # t.pack()
+    f2.pack(side = BOTTOM, anchor="s")
+
+    frame.interior.winfo_children()[0].pack()
 
 
-for child in frame2.interior.winfo_children():
-    print(child)
+Button(root, text = "Next", command = drop).pack()
+
+
+
+def rounded_rect(canvas, x, y, w, h, c):
+    canvas.create_arc(x,   y,   x+2*c,   y+2*c,   start= 90, extent=90, style="arc")
+    canvas.create_arc(x+w-2*c, y+h-2*c, x+w, y+h, start=270, extent=90, style="arc")
+    canvas.create_arc(x+w-2*c, y,   x+w, y+2*c,   start=  0, extent=90, style="arc")
+    canvas.create_arc(x,   y+h-2*c, x+2*c,   y+h, start=180, extent=90, style="arc")
+    canvas.create_line(x+c, y,   x+w-c, y    )
+    canvas.create_line(x+c, y+h, x+w-c, y+h  )
+    canvas.create_line(x,   y+c, x,     y+h-c)
+    canvas.create_line(x+w, y+c, x+w,   y+h-c)
+
+
+canvas = tkinter.Canvas(root, selectborderwidth=0)
+
+
+# The width and height has been changed from the original solution
+
+txt = Text(root, height = 1, width = 11, border=0)
+
+
+canvas.create_window(10,15, window = txt, anchor="nw")
+
+rounded_rect(canvas, 10, 10, 80, 80, 10)
+canvas.pack()
 
 
 root.mainloop()
