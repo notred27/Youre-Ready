@@ -10,6 +10,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 import threading
 import lxml.html
+import customtkinter
 
 
 #TODO: fix minor errors,  restrictions scraping (addig bold to this text), class type scraping, red tint if filled/ unavailable class, 
@@ -367,6 +368,8 @@ def create_rounded_square(canvas, x, y, width, height, color, r = 10):
     canvas.create_rectangle(x + r,y,x +width - r ,y + height + 1, fill = color,width = 0)   # vertical
     canvas.create_rectangle(x ,y + r ,x + width + 1,y + height - r, fill = color, width = 0) #horizontal
 
+    
+
     canvas.create_oval(x , y , x + r * 2, y + r * 2, fill = color,width = 0) # top left
     canvas.create_oval(x + width - 2 * r, y, x + width, y + 2 * r, fill = color,width = 0) # top right
     canvas.create_oval(x, y + height - 2 * r, x + 2 * r, y + height, fill = color,width = 0) # bot left
@@ -642,10 +645,10 @@ root.protocol("WM_DELETE_WINDOW", save_and_quit)
 
 calander_frame = Frame(root, bd = 2, relief="solid")
 
-header= Canvas(calander_frame, width = 420, height = 35)
+header= customtkinter.CTkCanvas(calander_frame, width = 420, height = 35)
 header.pack(pady=(0,0))
 
-plan= Canvas(calander_frame, width = 420, height = 580)
+plan= customtkinter.CTkCanvas(calander_frame, width = 420, height = 580)
 plan.pack( anchor = 'nw', pady=(0,0))
 
 
