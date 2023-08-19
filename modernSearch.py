@@ -149,9 +149,6 @@ def toggle_drop_down(f, dict):
 
 def create_modern_frame(dict, i):
     f = Frame(cur_courses_pane.interior)
-    # print("%-*s  Revision: %s" % (50,"10-10-10-10","1"))
-    # lbl_txt =("%-*s %-*s %-*s %-*s %s : %s" % (15, " ".join(dict["Title"].split(" ")[0:2]), 15, dict["Credit"], 5,dict["Open"], 20, "(" + dict["Enrolled"] + "/" + dict["Capacity"] + ")", dict["Days"], time_to_str(dict["Start"]) + " - " + time_to_str(dict["End"])))
-
  
     lbl_txt =("%-*s %-*s" % (15, " ".join(dict["Title"].split(" ")[0:2]), 15, dict["Credit"]))
 
@@ -172,6 +169,7 @@ def create_modern_frame(dict, i):
         f["bg"] = bg2
 
 
+    #TODO change this to an if statement for chosen courses page
     Checkbutton(f, text = "Hide Class",  font = customtkinter.CTkFont(size=10, weight="normal"), relief=RIDGE, bd = 2).pack( side = RIGHT, anchor = "n", pady=2)   
 
     # Button(f, text = "Add", font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n")

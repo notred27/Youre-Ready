@@ -34,6 +34,15 @@ import customtkinter
 # TODO for overlapping classes, add a yellow triangle in the bottom right with the number of classes in that space
 # For writing classes, workshops, recitations, add something to make it stand out on the calender
 
+
+color1 = "#fcfc5d"
+bg1 = "#f5f5bf"
+color2 = "#5ec1ff"
+bg2 = "#c5e6fa"
+
+
+
+
 class VerticalScrolledFrame(ttk.Frame):
     def __init__(self, parent, *args, **kw):
         ttk.Frame.__init__(self, parent, *args, **kw)
@@ -148,17 +157,19 @@ def make_text(parent, dict):
     text.pack()
     
 
-def create_search_result_pane(dict):
-    f=Frame(result_courses_pane.interior,  relief= GROOVE, bd=3, bg = "white")
-    make_text(f,dict)
-    Button(f, text="Add to Schedule", height = 1, command=lambda *args: add_course_to_schedule(dict)).pack(side = BOTTOM, anchor="se", padx = 4, pady = 4)
-    f.pack(pady = 5)
+# def create_search_result_pane(dict):
+#     f=Frame(result_courses_pane.interior,  relief= GROOVE, bd=3, bg = "white")
+#     make_text(f,dict)
+#     Button(f, text="Add to Schedule", height = 1, command=lambda *args: add_course_to_schedule(dict)).pack(side = BOTTOM, anchor="se", padx = 4, pady = 4)
+#     f.pack(pady = 5)
 
 
 def add_course_to_schedule(course):
+    i = 0
     if course not in current_classes:
         current_classes.append(course)
-        create_added_class_pane(course)
+        create_modern_added_courses_frame(course, i)
+        i += 1
         for day in course["Days"]:
             draw_class( day, " ".join(course["Title"].split(" ")[0:3]), course["Start"], color = "blue")
     update_overlap()
@@ -180,6 +191,121 @@ def create_added_class_pane(dict):
     f.pack(pady = 5)
 
     toggle_show(dict, var)
+
+def create_modern_search_courses_frame(dict, i):
+    f = Frame(result_courses_pane.interior)
+ 
+    lbl_txt =("%-*s %-*s" % (15, " ".join(dict["Title"].split(" ")[0:2]), 15, dict["Credit"]))
+
+    if dict["Open"]:
+        lbl_txt += ("%-*s : %-*.*s" %      (6,"Open", 20, 8, ("(" + dict["Enrolled"] + "/" + dict["Capacity"] + ")")))
+    else:
+        lbl_txt += ("%-*s : %-*.*s" %     ( 6,"Closed", 20,20, ("(" + dict["Enrolled"] + "/" + dict["Capacity"] + ")")))
+
+    lbl_txt += ("%-*s : %s" % (3, dict["Days"], time_to_str(dict["Start"]) + " - " + time_to_str(dict["End"])))
+
+
+    l = Label(f, text = lbl_txt, font = customtkinter.CTkFont(size=15, weight="normal"), width = 65, anchor = "nw")
+
+    if(not dict["Open"]):
+        l["fg"] = "red"
+
+
+    if i % 2 == 0:
+        l["bg"] = color1
+        f["bg"] = bg1
+    else:
+        l["bg"] = color2
+        f["bg"] = bg2
+
+    # Button(f, text = "Add", font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n")
+    customtkinter.CTkButton(f, text = "Add", fg_color="#ff8b05", width = 50, height = 20, font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", padx = 5, pady = 2)
+
+    # Button(f, text = "Info", command = lambda *args: toggle_drop_down(f, dict), font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n")
+    customtkinter.CTkButton(f, text = "Info",  fg_color="#0000FF", width = 50, height = 20, command = lambda *args: toggle_drop_down(f, dict), font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", pady = 2)
+    
+     
+    
+    l.pack()
+    f.pack(anchor="w")
+
+#FIXME new function
+def create_modern_added_courses_frame(dict, i):
+    f = Frame(cur_courses_pane.interior, name = dict["Title"].lower())
+ 
+    lbl_txt =("%-*s %-*s" % (15, " ".join(dict["Title"].split(" ")[0:2]), 15, dict["Credit"]))
+
+    if dict["Open"]:
+        lbl_txt += ("%-*s : %-*.*s" %      (6,"Open", 20, 8, ("(" + dict["Enrolled"] + "/" + dict["Capacity"] + ")")))
+    else:
+        lbl_txt += ("%-*s : %-*.*s" %     ( 6,"Closed", 20,20, ("(" + dict["Enrolled"] + "/" + dict["Capacity"] + ")")))
+
+    lbl_txt += ("%-*s : %s" % (3, dict["Days"], time_to_str(dict["Start"]) + " - " + time_to_str(dict["End"])))
+
+
+    l = Label(f, text = lbl_txt, font = customtkinter.CTkFont(size=15, weight="normal"), width = 65, anchor = "nw")
+    if i % 2 == 0:
+        l["bg"] = color1
+        f["bg"] = bg1
+    else:
+        l["bg"] = color2
+        f["bg"] = bg2
+
+
+    #TODO change this to an if statement for chosen courses page
+    var = tkinter.IntVar()
+    var.set(int(not dict["Showing"]))
+    Checkbutton(f, text = "Hide Class", variable=var, command=lambda *args: toggle_show(dict, var), font = customtkinter.CTkFont(size=10, weight="normal"), relief=RIDGE, bd = 2).pack( side = RIGHT, anchor = "n", pady=2)   
+
+    # Button(f, text = "Add", font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n")
+    customtkinter.CTkButton(f, text = "Add", fg_color="#ff8b05", width = 50, height = 20, font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", padx = 5, pady = 2)
+
+    # Button(f, text = "Info", command = lambda *args: toggle_drop_down(f, dict), font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n")
+    customtkinter.CTkButton(f, text = "Info",  fg_color="#0000FF", width = 50, height = 20, command = lambda *args: toggle_drop_down(f, dict), font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", pady = 2)
+    
+     
+    
+    l.pack()
+    f.pack(anchor="w")
+
+
+def toggle_drop_down(f, dict):
+    for child in f.winfo_children():
+        if "text" in child.winfo_name():
+            child.destroy()
+            return
+        
+    if f["bg"] == bg1:
+        make_text2(f, dict, bg1)
+    else:
+        make_text2(f, dict, bg2)
+
+
+def make_text2(parent, dict, color ):
+    text = Text(parent,  font="Helvetica 9", spacing1=5, wrap=WORD, width=75, bd = 0, name = "text", bg = color)
+    text.tag_configure("r", font="Helvetica 9")
+    text.tag_configure("bold", font="Helvetica 9 bold")
+    text.tag_configure("blue",foreground="blue")
+    text.tag_configure("red",foreground="red")
+
+    text.insert("end", dict["Title"],"blue") 
+    # text.insert("end", "    " + dict["Term"] + "\n", "bold" ) 
+    text.insert("end", "\n", "bold" ) 
+
+    text.insert("end", "Offered: ","bold", " ".join(dict["Offered"] )+ "\n") 
+
+    text.insert("end", "Instructor: ","bold", dict["Instructor"] + "\n") 
+    text.insert("end", "Room: ","bold", dict["Room"] + "\n") 
+    text.insert("end", "Description: ","bold", dict["Description"] + "\n") 
+
+
+    text.configure(state='disabled')
+    text.configure(height = int(text.index('end').split('.')[0]) + 1)
+    
+    text.pack(side = BOTTOM)
+
+
+
 
 
 def remove_course_from_schedule(course, frame):
@@ -390,7 +516,7 @@ def change_displayed_courses(startI, endI):
 
 
     for entry in range(startI-1,endI):
-        create_search_result_pane(loadData[entry])  
+        create_modern_search_courses_frame(loadData[entry], entry)  
 
     # print(len(result_courses_pane.interior.winfo_children()))        
 
@@ -775,7 +901,7 @@ cur_courses_pane.pack()
 
 # Load all of the current saved clsses into the scroll pane     FIXME create a scrolling pane for this window
 for entry in range(0,len(current_classes)):
-    create_added_class_pane(current_classes[entry]) 
+    create_modern_added_courses_frame(current_classes[entry], entry) 
 
 
 
