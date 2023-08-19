@@ -172,12 +172,15 @@ def create_modern_frame(dict, i):
         f["bg"] = bg2
 
 
+    Checkbutton(f, text = "Hide Class",  font = customtkinter.CTkFont(size=10, weight="normal"), relief=RIDGE, bd = 2).pack( side = RIGHT, anchor = "n", pady=2)   
+
     # Button(f, text = "Add", font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n")
     customtkinter.CTkButton(f, text = "Add", fg_color="#ff8b05", width = 50, height = 20, font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", padx = 5, pady = 2)
 
     # Button(f, text = "Info", command = lambda *args: toggle_drop_down(f, dict), font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n")
     customtkinter.CTkButton(f, text = "Info",  fg_color="#0000FF", width = 50, height = 20, command = lambda *args: toggle_drop_down(f, dict), font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", pady = 2)
     
+     
     
     l.pack()
     f.pack(anchor="w")
@@ -195,6 +198,61 @@ cur_courses_pane.pack()
 # Load all of the current saved clsses into the scroll pane     FIXME create a scrolling pane for this window
 for entry in range(0,5):
     create_modern_frame(current_classes[entry], entry) 
+
+
+class CustomCombobox(ttk.Combobox):
+    def __init__(self, parent,values = None, startingText = '',fg = 'black',  *args, **kw):
+        ttk.Combobox.__init__(self, parent, *args, **kw)
+        self.values = values
+        self['values'] = values
+
+        self.startingText = startingText
+        self.set(startingText)
+        self.configure(foreground="#777777")
+
+        self.fg = fg
+
+        self.bind('<Button-1>', self.manage_initial_text)
+        self.bind('<KeyRelease>', self.manage_combobox)
+
+    def manage_initial_text(self, event):
+
+        if self.get() == self.startingText:
+            self.set('')
+            self.configure(foreground=self.fg)
+
+
+    def manage_combobox(self, event):
+        value = event.widget.get()
+
+        if value == '':
+            self['values'] = self.values
+
+        else:
+            data = []
+            for item in self.values:
+                if value.lower() in item.lower():
+                    data.append(item)
+            data.sort()
+            self['values'] = data
+
+    def reset(self):
+        self.set(self.startingText)
+        self.configure(foreground="#777777")
+        self['values'] = self.values
+
+
+lst =  json.loads(open("dropbox_info.json", "r").read())["Dept"]
+
+
+
+CustomCombobox(root, width= 20,values=lst, startingText="Semester (REQ) :").pack()
+
+
+Entry(root, width = 15).pack()
+
+CustomCombobox(root, width= 15,values=lst, startingText="Starts after:").pack()
+CustomCombobox(root, width= 15,values=lst, startingText="Starts before:").pack()
 
 
 
