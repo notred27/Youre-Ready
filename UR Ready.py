@@ -40,6 +40,46 @@ bg1 = "#f5f5bf"
 color2 = "#5ec1ff"
 bg2 = "#c5e6fa"
 
+class CustomCombobox(ttk.Combobox):
+    def __init__(self, parent,values = None, startingText = '',fg = 'black',  *args, **kw):
+        ttk.Combobox.__init__(self, parent, *args, **kw)
+        self.values = values
+        self['values'] = values
+
+        self.startingText = startingText
+        self.set(startingText)
+        self.configure(foreground="#777777")
+
+        self.fg = fg
+
+        self.bind('<Button-1>', self.manage_initial_text)
+        self.bind('<KeyRelease>', self.manage_combobox)
+
+    def manage_initial_text(self, event):
+
+        if self.get() == self.startingText:
+            self.set('')
+            self.configure(foreground=self.fg)
+
+
+    def manage_combobox(self, event):
+        value = event.widget.get()
+
+        if value == '':
+            self['values'] = self.values
+
+        else:
+            data = []
+            for item in self.values:
+                if value.lower() in item.lower():
+                    data.append(item)
+            data.sort()
+            self['values'] = data
+
+    def reset(self):
+        self.set(self.startingText)
+        self.configure(foreground="#777777")
+        self['values'] = self.values
 
 
 
@@ -180,17 +220,17 @@ def add_course_to_schedule(course):
 
 
 #FIXME find out how to use tags to easily locate panes for different courses
-def create_added_class_pane(dict):
-    f=Frame(cur_courses_pane.interior,  relief= GROOVE, bd=3, bg = "white", name = dict["Title"].lower())
-    make_text(f,dict)
-    Button(f, text="Remove from Schedule", height = 1, command=lambda *args: remove_course_from_schedule(dict, f)).pack(side = RIGHT, anchor="se", padx = 4, pady = 4)
+# def create_added_class_pane(dict):
+#     f=Frame(cur_courses_pane.interior,  relief= GROOVE, bd=3, bg = "white", name = dict["Title"].lower())
+#     make_text(f,dict)
+#     Button(f, text="Remove from Schedule", height = 1, command=lambda *args: remove_course_from_schedule(dict, f)).pack(side = RIGHT, anchor="se", padx = 4, pady = 4)
 
-    var = tkinter.IntVar()
-    var.set(int(not dict["Showing"]))
-    Checkbutton(f, text = "Hide Class", anchor = "w", variable=var, command=lambda *args: toggle_show(dict, var), relief=RIDGE, bd = 2).pack( side =LEFT,  anchor="sw", padx = 4, pady = 4)    
-    f.pack(pady = 5)
+#     var = tkinter.IntVar()
+#     var.set(int(not dict["Showing"]))
+#     Checkbutton(f, text = "Hide Class", anchor = "w", variable=var, command=lambda *args: toggle_show(dict, var), relief=RIDGE, bd = 2).pack( side =LEFT,  anchor="sw", padx = 4, pady = 4)    
+#     f.pack(pady = 5)
 
-    toggle_show(dict, var)
+#     toggle_show(dict, var)
 
 def create_modern_search_courses_frame(dict, i):
     f = Frame(result_courses_pane.interior)
@@ -219,7 +259,7 @@ def create_modern_search_courses_frame(dict, i):
         f["bg"] = bg2
 
     # Button(f, text = "Add", font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n")
-    customtkinter.CTkButton(f, text = "Add", fg_color="#ff8b05", width = 50, height = 20, font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", padx = 5, pady = 2)
+    customtkinter.CTkButton(f, text = "Add", command=lambda *args: add_course_to_schedule(dict), fg_color="#ff8b05", width = 50, height = 20, font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", padx = 5, pady = 2)
 
     # Button(f, text = "Info", command = lambda *args: toggle_drop_down(f, dict), font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n")
     customtkinter.CTkButton(f, text = "Info",  fg_color="#0000FF", width = 50, height = 20, command = lambda *args: toggle_drop_down(f, dict), font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", pady = 2)
@@ -258,7 +298,7 @@ def create_modern_added_courses_frame(dict, i):
     Checkbutton(f, text = "Hide Class", variable=var, command=lambda *args: toggle_show(dict, var), font = customtkinter.CTkFont(size=10, weight="normal"), relief=RIDGE, bd = 2).pack( side = RIGHT, anchor = "n", pady=2)   
 
     # Button(f, text = "Add", font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n")
-    customtkinter.CTkButton(f, text = "Add", fg_color="#ff8b05", width = 50, height = 20, font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", padx = 5, pady = 2)
+    customtkinter.CTkButton(f, text = "Remove", command=lambda *args: remove_course_from_schedule(dict, f), fg_color="#ff8b05", width = 50, height = 20, font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", padx = 5, pady = 2)
 
     # Button(f, text = "Info", command = lambda *args: toggle_drop_down(f, dict), font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n")
     customtkinter.CTkButton(f, text = "Info",  fg_color="#0000FF", width = 50, height = 20, command = lambda *args: toggle_drop_down(f, dict), font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", pady = 2)
@@ -580,9 +620,15 @@ def fetch(term, dept ="", type = "", courseName = ""):
     courseName = courseSelect.get("1.0",END)
     desc = titleSelect.get("1.0",END)
 
-    thread = threading.Thread(target=scrapeHTML, args=[term, dept, type,courseName,desc])
-    thread.start()
-    root.after(200, check_if_ready, thread)
+    if term in yearSelect.values and dept in subjectSelect.values and type in typeSelect.values:
+        print("valid search")
+
+        thread = threading.Thread(target=scrapeHTML, args=[term, dept, type,courseName,desc])
+        thread.start()
+        root.after(200, check_if_ready, thread)
+    else:   #FIXME make this message better
+        tkinter.messagebox.showerror(title="Search Box Error", message="INVALID SEARCH (make sure selected values are valid options)")
+        print("INVALID SEARCH (make sure selected values are valid options)")
     
 
 
@@ -746,11 +792,13 @@ def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
 
 
 def save_and_quit():
+    global browser
     print("Closing...")
     out = open("saved_classes.json", "w")
     json_out_data = json.dumps(current_classes)
     out.write(json_out_data)
     out.close()
+    browser.close()
 
     # browser.close()
     root.destroy()
@@ -819,15 +867,16 @@ styleT.configure('TCombobox', selectbackground=None, selectforeground=None)
 searchLeft = Frame(searchPane)
 searchRight = Frame(searchPane)
 
-
+print(time.strftime("%H:%M:%S", time.localtime()), "    -Getting Combobox Values")
 browser.get('https://cdcs.ur.rochester.edu/')
+
 
 xmlSrc = lxml.html.fromstring(browser.page_source)
 
-
+#FIXME add a function to verify that selected values are actually in the combobox
 
 yearTitle = Label(searchLeft, text="Term (REQUIRED)", fg = "red").pack(anchor='w')
-yearSelect = ttk.Combobox(searchLeft,width = 32, state="readonly",values = (xmlSrc.xpath('//*[@id="ddlTerm"]/option/text()')))
+yearSelect = CustomCombobox(searchLeft,width = 32,values = (xmlSrc.xpath('//*[@id="ddlTerm"]/option/text()')),startingText="Semester (REQ) :")
 
 yearSelect.bind("<<ComboboxSelected>>",lambda e: searchPane.focus())
 yearSelect.pack()
@@ -835,14 +884,14 @@ yearSelect.pack()
 
 
 subjectTitle = Label(searchLeft, text="Subject:").pack(anchor='w')
-subjectSelect = ttk.Combobox(searchLeft, width = 32,state="readonly",values = (xmlSrc.xpath('//*[@id="ddlDept"]/option/text()')))     # 
+subjectSelect = CustomCombobox(searchLeft, width = 32,values = (xmlSrc.xpath('//*[@id="ddlDept"]/option/text()')),startingText="Subject :")     # 
 # subjectSelect.bind('<KeyRelease>', manage_combobox)
 subjectSelect.bind("<<ComboboxSelected>>",lambda e: searchPane.focus())
 subjectSelect.pack()
 
 
 typeTitle = Label(searchLeft, text="Course Type:").pack(anchor='w')
-typeSelect = ttk.Combobox(searchLeft,width = 32, state="readonly", values = (xmlSrc.xpath('//*[@id="ddlTypes"]/option/text()')))
+typeSelect = CustomCombobox(searchLeft,width = 32,  values = (xmlSrc.xpath('//*[@id="ddlTypes"]/option/text()')),startingText="Type :")
 
 typeSelect.bind("<<ComboboxSelected>>",lambda e: searchPane.focus())
 typeSelect.pack()
