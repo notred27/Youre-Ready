@@ -16,6 +16,8 @@ import customtkinter
 #TODO: fix minor errors,  restrictions scraping (addig bold to this text), class type scraping, red tint if filled/ unavailable class, 
 #  dropdown menues for selected courses, add graphical elements when searching for quereys / no results are found
 
+# Error with using dict["Title"] as a widget name when the title contains a special character
+
 # Add a check that if someone signs up for a workshop, they also sign up for the lecture (dropdown menu for workshop classes from main lecture class?)
 
 
@@ -80,6 +82,222 @@ class CustomCombobox(ttk.Combobox):
         self.set(self.startingText)
         self.configure(foreground="#777777")
         self['values'] = self.values
+
+
+class AddedCourseElement(ttk.Frame):
+    def __init__(self, parent,dict = None, color1 = "red", color2 = "green", *args, **kw):
+
+
+        ttk.Frame.__init__(self, parent,name = dict["Title"].lower(), *args , **kw)
+
+        self.color1 = color1
+        self.color2 = color2
+        self.dict = dict
+        self.text = None
+
+        self.cur_color = color2
+
+        self.top_bar = Frame(self, bg = color1)
+        self.label = Label(self.top_bar, bg = color1, font = customtkinter.CTkFont(size=15, weight="normal"), width = 65, anchor = "nw")
+
+
+        lbl_txt =("%-*s %-*s" % (15, " ".join(dict["Title"].split(" ")[0:2]), 15, dict["Credit"]))
+        if dict["Open"]:
+            lbl_txt += ("%-*s : %-*.*s" %      (6,"Open", 20, 8, ("(" + dict["Enrolled"] + "/" + dict["Capacity"] + ")")))
+        else:
+            lbl_txt += ("%-*s : %-*.*s" %     ( 6,"Closed", 20,20, ("(" + dict["Enrolled"] + "/" + dict["Capacity"] + ")")))
+        lbl_txt += ("%-*s : %s" % (3, dict["Days"], time_to_str(dict["Start"]) + " - " + time_to_str(dict["End"])))
+        self.label["text"] = lbl_txt
+
+        if not dict["Open"]:
+            self.label["fg"] = "red"
+
+
+
+        self.var = tkinter.IntVar()
+        self.var.set(int(not dict["Showing"]))
+
+
+        Checkbutton(self.top_bar, text = "Hide Class", variable=self.var, command= self.toggle_show, font = customtkinter.CTkFont(size=10, weight="normal"), relief=RIDGE, bd = 2).pack( side = RIGHT, anchor = "n", padx = 3,pady=2)   
+        customtkinter.CTkButton(self.top_bar, text = "Remove",command=self.remove_course_from_schedule, fg_color="#ff8b05", width = 50, height = 20, font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", padx = 5, pady = 2)
+        customtkinter.CTkButton(self.top_bar, text = "Info", command = self.toggle_dropdown, fg_color="#0000FF", width = 50, height = 20,  font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", pady = 2)
+        
+
+        self.label.pack()
+        self.top_bar.pack(side = TOP, anchor="w")
+        self.pack(anchor="w")
+
+        self.toggle_show()
+
+    def toggle_dropdown(self):
+        if self.text == None:
+            self.make_text()
+        else:
+            self.text.destroy()
+            self.text = None
+
+    def make_text(self):        
+        self.text = Text(self,  padx = 5, font="Helvetica 9", spacing1=5, wrap=WORD, width=101, bd = 0, bg = self.cur_color)
+        self.text.tag_configure("bold", font="Helvetica 9 bold")
+        self.text.tag_configure("blue",foreground="blue")
+ 
+        self.text.insert("end", self.dict["Title"],"blue") 
+        self.text.insert("end", "\nOffered: ","bold", " ".join(self.dict["Offered"] )) 
+        self.text.insert("end", "\nInstructor: ","bold", self.dict["Instructor"]) 
+        self.text.insert("end", "\nRoom: ","bold", self.dict["Room"]) 
+        self.text.insert("end", "\nDescription: ","bold", self.dict["Description"]) 
+
+        self.text.configure(state='disabled',height = int(self.text.index('end').split('.')[0]) + 1)       
+        self.text.pack(side = BOTTOM, anchor="w")
+
+    def _change_mode(self, mode):
+        if mode == "normal":
+            self.label["bg"] = self.color1
+            self.top_bar["bg"] = self.color1
+            
+            self.cur_color = self.color2
+
+            if self.text != None:
+                self.text["bg"] = self.color2 
+
+        if mode == "hidden":
+            self.label["bg"] = "#c7cdd6"
+            self.top_bar["bg"] = "#c7cdd6"
+            
+            self.cur_color = "#e7eff8"
+
+            if self.text != None:
+                self.text["bg"] = "#e7eff8"
+
+        if mode == "overlap":
+            self.label["bg"] = "#ffc2cc"
+            self.top_bar["bg"] = "#ffc2cc"
+            
+            self.cur_color = "#f8dee7"
+
+            if self.text != None:
+                self.text["bg"] = "#f8dee7"
+
+    def remove_course_from_schedule(self):
+        if(self.dict in current_classes):
+            current_classes.remove(self.dict)
+            
+        self.destroy()
+        draw_cal()
+        draw_header()
+
+
+    def toggle_show(self):   #Intermediate function to work with IntVar so courses can be serialized using json
+        #FIXME add color changes to pane here (and maybe add_class_pane) so they update when classes are changed
+
+
+        if self.var.get() == 0:
+            self.dict["Showing"] = True
+            self._change_mode("normal")
+        else:
+            self.dict["Showing"] = False
+            self._change_mode("hidden")
+            # change_wiget_color("#c7cdd6", cur_courses_pane.interior.nametowidget(course["Title"].lower()))
+            
+        update_overlap()
+        draw_cal()
+        draw_header()
+
+
+
+
+
+def update_overlap():       #FIXME update so that this also controls the colors of the classes on the clander from draw_cal() method?
+    for course in current_classes:
+        if course["Showing"]:
+            try:
+                cur_courses_pane.interior.nametowidget(course["Title"].lower())._change_mode("normal")
+            except:
+                pass
+
+    for course in current_classes:
+        if course["Showing"]:
+            
+            for day in course["Days"]:
+                for other in current_classes:
+                    if not other == course and day in other["Days"] and other["Showing"] and ((other["Start"] <= course["Start"] and course["Start"] <= other["End"]) or (course["Start"] <= other["Start"] and other["Start"] <= course["End"])):
+                        #TODO send out a notif to other panes that they are overlapped
+                        try:
+                            cur_courses_pane.interior.nametowidget(course["Title"].lower())._change_mode("overlap")
+                            cur_courses_pane.interior.nametowidget(other["Title"].lower())._change_mode("overlap")
+                        except:
+                            pass
+                
+        
+
+
+class SearchCourseElement(ttk.Frame):
+    def __init__(self, parent,dict = None, color1 = "red", color2 = "green", *args, **kw):
+        ttk.Frame.__init__(self, parent, *args , **kw)
+
+        self.color1 = color1
+        self.color2 = color2
+        self.dict = dict
+        self.text = None
+
+        self.cur_color = color2
+
+        self.top_bar = Frame(self, bg = color1)
+        self.label = Label(self.top_bar, bg = color1, font = customtkinter.CTkFont(size=15, weight="normal"), width = 65, anchor = "nw")
+
+        if not dict["Open"]:
+            self.label["fg"] = "red"
+
+        lbl_txt =("%-*s %-*s" % (15, " ".join(dict["Title"].split(" ")[0:2]), 15, dict["Credit"]))
+        if dict["Open"]:
+            lbl_txt += ("%-*s : %-*.*s" %      (6,"Open", 20, 8, ("(" + dict["Enrolled"] + "/" + dict["Capacity"] + ")")))
+        else:
+            lbl_txt += ("%-*s : %-*.*s" %     ( 6,"Closed", 20,20, ("(" + dict["Enrolled"] + "/" + dict["Capacity"] + ")")))
+        lbl_txt += ("%-*s : %s" % (3, dict["Days"], time_to_str(dict["Start"]) + " - " + time_to_str(dict["End"])))
+        self.label["text"] = lbl_txt
+
+        customtkinter.CTkButton(self.top_bar, text = "Add",command=self.add_course_to_schedule, fg_color="#ff8b05", width = 50, height = 20, font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", padx = 5, pady = 2)
+        customtkinter.CTkButton(self.top_bar, text = "Info", command = self.toggle_dropdown, fg_color="#0000FF", width = 50, height = 20,  font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", pady = 2)
+        
+        self.label.pack()
+        self.top_bar.pack(side = TOP, anchor="w")
+        self.pack(anchor="w")
+
+
+    def toggle_dropdown(self):
+        if self.text == None:
+            self.make_text()
+        else:
+            self.text.destroy()
+            self.text = None
+
+    def make_text(self):        
+        self.text = Text(self,  padx = 5, font="Helvetica 9", spacing1=5, wrap=WORD, width=101, bd = 0, bg = self.cur_color)
+        self.text.tag_configure("bold", font="Helvetica 9 bold")
+        self.text.tag_configure("blue",foreground="blue")
+ 
+        self.text.insert("end", self.dict["Title"],"blue") 
+        self.text.insert("end", "\nOffered: ","bold", " ".join(self.dict["Offered"] )) 
+        self.text.insert("end", "\nInstructor: ","bold", self.dict["Instructor"]) 
+        self.text.insert("end", "\nRoom: ","bold", self.dict["Room"]) 
+        self.text.insert("end", "\nDescription: ","bold", self.dict["Description"]) 
+
+        self.text.configure(state='disabled',height = int(self.text.index('end').split('.')[0]) + 1)       
+        self.text.pack(side = BOTTOM, anchor="w")
+
+    def add_course_to_schedule(self):
+        if self.dict not in current_classes:
+            current_classes.append(self.dict)
+
+            if(len(current_classes) % 2 == 1):
+                AddedCourseElement(cur_courses_pane.interior,self.dict, color1=color1, color2= bg1)
+            else:
+                AddedCourseElement(cur_courses_pane.interior,self.dict, color1=color2, color2= bg2)
+            for day in self.dict["Days"]:
+                draw_class( day, " ".join(self.dict["Title"].split(" ")[0:3]), self.dict["Start"], color = "blue")
+        update_overlap()
+        draw_cal()
+        draw_header()
 
 
 
@@ -175,26 +393,26 @@ def time_to_str(time):
     return ""
 
 
-def make_text(parent, dict):
-    text = Text(parent,  font="Helvetica 9", spacing1=5, wrap=WORD, height = 12, width=55, bd = 0)
-    text.tag_configure("r", font="Helvetica 9")
-    text.tag_configure("bold", font="Helvetica 9 bold")
-    text.tag_configure("blue",foreground="blue")
-    text.tag_configure("red",foreground="red")
+# def make_text(parent, dict):
+#     text = Text(parent,  font="Helvetica 9", spacing1=5, wrap=WORD, height = 12, width=55, bd = 0)
+#     text.tag_configure("r", font="Helvetica 9")
+#     text.tag_configure("bold", font="Helvetica 9 bold")
+#     text.tag_configure("blue",foreground="blue")
+#     text.tag_configure("red",foreground="red")
 
-    text.insert("end", dict["Title"] + "\n","blue") 
-    text.insert("end", "                                                " + dict["Term"] + "\n", "bold" ) 
-    text.insert("end", "Days: ","bold", str("".join(dict["Days"])), "r","   Start: ", "bold", time_to_str(dict["Start"]), "r", "  End: ","bold", ( time_to_str(dict["End"])), "r",  "                Credit: " + dict["Credit"] + "\n", 'red')
-    text.insert("end", "Enrolled: ","bold", dict["Enrolled"] + '/' + dict["Capacity"] + "\n") 
-    text.insert("end", "Instructor: ","bold", dict["Instructor"] + "\n") 
-    text.insert("end", "Room: ","bold", dict["Room"] + "\n") 
-    text.insert("end", "Description: ","bold", dict["Description"] + "\n") 
-    text.insert("end", "Offered: ","bold", " ".join(dict["Offered"])) 
+#     text.insert("end", dict["Title"] + "\n","blue") 
+#     text.insert("end", "                                                " + dict["Term"] + "\n", "bold" ) 
+#     text.insert("end", "Days: ","bold", str("".join(dict["Days"])), "r","   Start: ", "bold", time_to_str(dict["Start"]), "r", "  End: ","bold", ( time_to_str(dict["End"])), "r",  "                Credit: " + dict["Credit"] + "\n", 'red')
+#     text.insert("end", "Enrolled: ","bold", dict["Enrolled"] + '/' + dict["Capacity"] + "\n") 
+#     text.insert("end", "Instructor: ","bold", dict["Instructor"] + "\n") 
+#     text.insert("end", "Room: ","bold", dict["Room"] + "\n") 
+#     text.insert("end", "Description: ","bold", dict["Description"] + "\n") 
+#     text.insert("end", "Offered: ","bold", " ".join(dict["Offered"])) 
 
-    # print(int(text.count("1.0", "end", "displaylines")[0] / 50.0))
-    # print(int(text.index('end-1c').split('.')[0]))
-    text.configure(state="disabled")
-    text.pack()
+#     # print(int(text.count("1.0", "end", "displaylines")[0] / 50.0))
+#     # print(int(text.index('end-1c').split('.')[0]))
+#     text.configure(state="disabled")
+#     text.pack()
     
 
 # def create_search_result_pane(dict):
@@ -204,17 +422,7 @@ def make_text(parent, dict):
 #     f.pack(pady = 5)
 
 
-def add_course_to_schedule(course):
-    i = 0
-    if course not in current_classes:
-        current_classes.append(course)
-        create_modern_added_courses_frame(course, i)
-        i += 1
-        for day in course["Days"]:
-            draw_class( day, " ".join(course["Title"].split(" ")[0:3]), course["Start"], color = "blue")
-    update_overlap()
-    draw_cal()
-    draw_header()
+
         
 
 
@@ -232,183 +440,166 @@ def add_course_to_schedule(course):
 
 #     toggle_show(dict, var)
 
-def create_modern_search_courses_frame(dict, i):
-    f = Frame(result_courses_pane.interior)
+# def create_modern_search_courses_frame(dict, i):
+#     f = Frame(result_courses_pane.interior)
  
-    lbl_txt =("%-*s %-*s" % (15, " ".join(dict["Title"].split(" ")[0:2]), 15, dict["Credit"]))
+#     lbl_txt =("%-*s %-*s" % (15, " ".join(dict["Title"].split(" ")[0:2]), 15, dict["Credit"]))
 
-    if dict["Open"]:
-        lbl_txt += ("%-*s : %-*.*s" %      (6,"Open", 20, 8, ("(" + dict["Enrolled"] + "/" + dict["Capacity"] + ")")))
-    else:
-        lbl_txt += ("%-*s : %-*.*s" %     ( 6,"Closed", 20,20, ("(" + dict["Enrolled"] + "/" + dict["Capacity"] + ")")))
+#     if dict["Open"]:
+#         lbl_txt += ("%-*s : %-*.*s" %      (6,"Open", 20, 8, ("(" + dict["Enrolled"] + "/" + dict["Capacity"] + ")")))
+#     else:
+#         lbl_txt += ("%-*s : %-*.*s" %     ( 6,"Closed", 20,20, ("(" + dict["Enrolled"] + "/" + dict["Capacity"] + ")")))
 
-    lbl_txt += ("%-*s : %s" % (3, dict["Days"], time_to_str(dict["Start"]) + " - " + time_to_str(dict["End"])))
-
-
-    l = Label(f, text = lbl_txt, font = customtkinter.CTkFont(size=15, weight="normal"), width = 65, anchor = "nw")
-
-    if(not dict["Open"]):
-        l["fg"] = "red"
+#     lbl_txt += ("%-*s : %s" % (3, dict["Days"], time_to_str(dict["Start"]) + " - " + time_to_str(dict["End"])))
 
 
-    if i % 2 == 0:
-        l["bg"] = color1
-        f["bg"] = bg1
-    else:
-        l["bg"] = color2
-        f["bg"] = bg2
+#     l = Label(f, text = lbl_txt, font = customtkinter.CTkFont(size=15, weight="normal"), width = 65, anchor = "nw")
 
-    # Button(f, text = "Add", font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n")
-    customtkinter.CTkButton(f, text = "Add", command=lambda *args: add_course_to_schedule(dict), fg_color="#ff8b05", width = 50, height = 20, font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", padx = 5, pady = 2)
+#     if(not dict["Open"]):
+#         l["fg"] = "red"
 
-    # Button(f, text = "Info", command = lambda *args: toggle_drop_down(f, dict), font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n")
-    customtkinter.CTkButton(f, text = "Info",  fg_color="#0000FF", width = 50, height = 20, command = lambda *args: toggle_drop_down(f, dict), font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", pady = 2)
+
+#     if i % 2 == 0:
+#         l["bg"] = color1
+#         f["bg"] = bg1
+#     else:
+#         l["bg"] = color2
+#         f["bg"] = bg2
+
+#     # Button(f, text = "Add", font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n")
+#     customtkinter.CTkButton(f, text = "Add", command=lambda *args: add_course_to_schedule(dict), fg_color="#ff8b05", width = 50, height = 20, font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", padx = 5, pady = 2)
+
+#     # Button(f, text = "Info", command = lambda *args: toggle_drop_down(f, dict), font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n")
+#     customtkinter.CTkButton(f, text = "Info",  fg_color="#0000FF", width = 50, height = 20, command = lambda *args: toggle_drop_down(f, dict), font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", pady = 2)
     
      
     
-    l.pack()
-    f.pack(anchor="w")
+#     l.pack()
+#     f.pack(anchor="w")
 
-#FIXME new function
-def create_modern_added_courses_frame(dict, i):
-    f = Frame(cur_courses_pane.interior, name = dict["Title"].lower())
+# #FIXME new function
+# def create_modern_added_courses_frame(dict, i):
+#     f = Frame(cur_courses_pane.interior, name = dict["Title"].lower())
  
-    lbl_txt =("%-*s %-*s" % (15, " ".join(dict["Title"].split(" ")[0:2]), 15, dict["Credit"]))
+#     lbl_txt =("%-*s %-*s" % (15, " ".join(dict["Title"].split(" ")[0:2]), 15, dict["Credit"]))
 
-    if dict["Open"]:
-        lbl_txt += ("%-*s : %-*.*s" %      (6,"Open", 20, 8, ("(" + dict["Enrolled"] + "/" + dict["Capacity"] + ")")))
-    else:
-        lbl_txt += ("%-*s : %-*.*s" %     ( 6,"Closed", 20,20, ("(" + dict["Enrolled"] + "/" + dict["Capacity"] + ")")))
+#     if dict["Open"]:
+#         lbl_txt += ("%-*s : %-*.*s" %      (6,"Open", 20, 8, ("(" + dict["Enrolled"] + "/" + dict["Capacity"] + ")")))
+#     else:
+#         lbl_txt += ("%-*s : %-*.*s" %     ( 6,"Closed", 20,20, ("(" + dict["Enrolled"] + "/" + dict["Capacity"] + ")")))
 
-    lbl_txt += ("%-*s : %s" % (3, dict["Days"], time_to_str(dict["Start"]) + " - " + time_to_str(dict["End"])))
-
-
-    l = Label(f, text = lbl_txt, font = customtkinter.CTkFont(size=15, weight="normal"), width = 65, anchor = "nw")
-    if i % 2 == 0:
-        l["bg"] = color1
-        f["bg"] = bg1
-    else:
-        l["bg"] = color2
-        f["bg"] = bg2
+#     lbl_txt += ("%-*s : %s" % (3, dict["Days"], time_to_str(dict["Start"]) + " - " + time_to_str(dict["End"])))
 
 
-    #TODO change this to an if statement for chosen courses page
-    var = tkinter.IntVar()
-    var.set(int(not dict["Showing"]))
-    Checkbutton(f, text = "Hide Class", variable=var, command=lambda *args: toggle_show(dict, var), font = customtkinter.CTkFont(size=10, weight="normal"), relief=RIDGE, bd = 2).pack( side = RIGHT, anchor = "n", pady=2)   
+#     l = Label(f, text = lbl_txt, font = customtkinter.CTkFont(size=15, weight="normal"), width = 65, anchor = "nw")
+#     if i % 2 == 0:
+#         l["bg"] = color1
+#         f["bg"] = bg1
+#     else:
+#         l["bg"] = color2
+#         f["bg"] = bg2
 
-    # Button(f, text = "Add", font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n")
-    customtkinter.CTkButton(f, text = "Remove", command=lambda *args: remove_course_from_schedule(dict, f), fg_color="#ff8b05", width = 50, height = 20, font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", padx = 5, pady = 2)
 
-    # Button(f, text = "Info", command = lambda *args: toggle_drop_down(f, dict), font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n")
-    customtkinter.CTkButton(f, text = "Info",  fg_color="#0000FF", width = 50, height = 20, command = lambda *args: toggle_drop_down(f, dict), font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", pady = 2)
+#     #TODO change this to an if statement for chosen courses page
+#     var = tkinter.IntVar()
+#     var.set(int(not dict["Showing"]))
+#     Checkbutton(f, text = "Hide Class", variable=var, command=lambda *args: toggle_show(dict, var), font = customtkinter.CTkFont(size=10, weight="normal"), relief=RIDGE, bd = 2).pack( side = RIGHT, anchor = "n", pady=2)   
+
+#     # Button(f, text = "Add", font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n")
+#     customtkinter.CTkButton(f, text = "Remove", command=lambda *args: remove_course_from_schedule(dict, f), fg_color="#ff8b05", width = 50, height = 20, font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", padx = 5, pady = 2)
+
+#     # Button(f, text = "Info", command = lambda *args: toggle_drop_down(f, dict), font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n")
+#     customtkinter.CTkButton(f, text = "Info",  fg_color="#0000FF", width = 50, height = 20, command = lambda *args: toggle_drop_down(f, dict), font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", pady = 2)
     
      
     
-    l.pack()
-    f.pack(anchor="w")
+#     l.pack()
+#     f.pack(anchor="w")
 
 
-def toggle_drop_down(f, dict):
-    for child in f.winfo_children():
-        if "text" in child.winfo_name():
-            child.destroy()
-            return
+# def toggle_drop_down(f, dict):
+#     for child in f.winfo_children():
+#         if "text" in child.winfo_name():
+#             child.destroy()
+#             return
         
-    if f["bg"] == bg1:
-        make_text2(f, dict, bg1)
-    else:
-        make_text2(f, dict, bg2)
+#     if f["bg"] == bg1:
+#         make_text2(f, dict, bg1)
+#     else:
+#         make_text2(f, dict, bg2)
 
 
-def make_text2(parent, dict, color ):
-    text = Text(parent,  font="Helvetica 9", spacing1=5, wrap=WORD, width=75, bd = 0, name = "text", bg = color)
-    text.tag_configure("r", font="Helvetica 9")
-    text.tag_configure("bold", font="Helvetica 9 bold")
-    text.tag_configure("blue",foreground="blue")
-    text.tag_configure("red",foreground="red")
+# def make_text2(parent, dict, color ):
+#     text = Text(parent,  font="Helvetica 9", spacing1=5, wrap=WORD, width=75, bd = 0, name = "text", bg = color)
+#     text.tag_configure("r", font="Helvetica 9")
+#     text.tag_configure("bold", font="Helvetica 9 bold")
+#     text.tag_configure("blue",foreground="blue")
+#     text.tag_configure("red",foreground="red")
 
-    text.insert("end", dict["Title"],"blue") 
-    # text.insert("end", "    " + dict["Term"] + "\n", "bold" ) 
-    text.insert("end", "\n", "bold" ) 
+#     text.insert("end", dict["Title"],"blue") 
+#     # text.insert("end", "    " + dict["Term"] + "\n", "bold" ) 
+#     text.insert("end", "\n", "bold" ) 
 
-    text.insert("end", "Offered: ","bold", " ".join(dict["Offered"] )+ "\n") 
+#     text.insert("end", "Offered: ","bold", " ".join(dict["Offered"] )+ "\n") 
 
-    text.insert("end", "Instructor: ","bold", dict["Instructor"] + "\n") 
-    text.insert("end", "Room: ","bold", dict["Room"] + "\n") 
-    text.insert("end", "Description: ","bold", dict["Description"] + "\n") 
+#     text.insert("end", "Instructor: ","bold", dict["Instructor"] + "\n") 
+#     text.insert("end", "Room: ","bold", dict["Room"] + "\n") 
+#     text.insert("end", "Description: ","bold", dict["Description"] + "\n") 
 
 
-    text.configure(state='disabled')
-    text.configure(height = int(text.index('end').split('.')[0]) + 1)
+#     text.configure(state='disabled')
+#     text.configure(height = int(text.index('end').split('.')[0]) + 1)
     
-    text.pack(side = BOTTOM)
+#     text.pack(side = BOTTOM)
 
 
 
 
 
-def remove_course_from_schedule(course, frame):
-    global plan
-    if(course in current_classes):
-        current_classes.remove(course)
-        frame.destroy()
-    draw_cal()
-    draw_header()
+# def remove_course_from_schedule(course, frame):
+#     global plan
+#     if(course in current_classes):
+#         current_classes.remove(course)
+#         frame.destroy()
+#     draw_cal()
+#     draw_header()
 
 
 
 
-def toggle_show(course, var):   #Intermediate function to work with IntVar so courses can be serialized using json
-    #FIXME add color changes to pane here (and maybe add_class_pane) so they update when classes are changed
-    if var.get() == 0:
-        course["Showing"] = True
-    else:
-        course["Showing"] = False
-        change_wiget_color("#c7cdd6", cur_courses_pane.interior.nametowidget(course["Title"].lower()))
+# def toggle_show(course, var):   #Intermediate function to work with IntVar so courses can be serialized using json
+#     #FIXME add color changes to pane here (and maybe add_class_pane) so they update when classes are changed
+#     if var.get() == 0:
+#         course["Showing"] = True
+#     else:
+#         course["Showing"] = False
+#         change_wiget_color("#c7cdd6", cur_courses_pane.interior.nametowidget(course["Title"].lower()))
         
-    update_overlap()
-    draw_cal()
-    draw_header()
+#     update_overlap()
+#     draw_cal()
+#     draw_header()
 
-def update_overlap():       #FIXME update so that this also controls the colors of the classes on the clander from draw_cal() method?
-    for course in current_classes:
-        if course["Showing"]:
-            try:
-                change_wiget_color("white", cur_courses_pane.interior.nametowidget(course["Title"].lower()))
-            except:
-                pass
 
-    for course in current_classes:
-        if course["Showing"]:
-            
-            for day in course["Days"]:
-                for other in current_classes:
-                    if not other == course and day in other["Days"] and other["Showing"] and ((other["Start"] <= course["Start"] and course["Start"] <= other["End"]) or (course["Start"] <= other["Start"] and other["Start"] <= course["End"])):
-                        overlap = True
-                        #TODO send out a notif to other panes that they are overlapped
-                        try:
-                            change_wiget_color("#ffc2cc", cur_courses_pane.interior.nametowidget(other["Title"].lower())) 
-                        except:
-                            pass
 
-def change_wiget_color(color, widget):
-    widget["bg"] = color
 
-    for child in widget.winfo_children():
-        if child.winfo_children():
-            # child has children, go through its children
-            change_wiget_color(color, child)
-        elif type(child) is Label:
-            child["bg"] = color
 
-        elif type(child) is Frame:
-            child["bg"] = color
+# def change_wiget_color(color, widget):
+#     widget["bg"] = color
 
-        elif type(child) is Text:
-            child["bg"] = color
-        else:
-            pass
+#     for child in widget.winfo_children():
+#         if child.winfo_children():
+#             # child has children, go through its children
+#             change_wiget_color(color, child)
+#         elif type(child) is Label:
+#             child["bg"] = color
+
+#         elif type(child) is Frame:
+#             child["bg"] = color
+
+#         elif type(child) is Text:
+#             child["bg"] = color
+#         else:
+#             pass
 
 
 
@@ -530,11 +721,10 @@ def draw_class(day = "", title = "", timeStart = 0, length = 115, color = "blue"
     plan.create_text(x + 4, y + 15, anchor="nw", text = timeStr, fill  = 'white',font=("helvetica",8))
 
 
+#TODO / FIXME update to aa circle
 def create_rounded_square(canvas, x, y, width, height, color, r = 10):
     canvas.create_rectangle(x + r,y,x +width - r ,y + height + 1, fill = color,width = 0)   # vertical
     canvas.create_rectangle(x ,y + r ,x + width + 1,y + height - r, fill = color, width = 0) #horizontal
-
-    
 
     canvas.create_oval(x , y , x + r * 2, y + r * 2, fill = color,width = 0) # top left
     canvas.create_oval(x + width - 2 * r, y, x + width, y + 2 * r, fill = color,width = 0) # top right
@@ -556,7 +746,11 @@ def change_displayed_courses(startI, endI):
 
 
     for entry in range(startI-1,endI):
-        create_modern_search_courses_frame(loadData[entry], entry)  
+        if entry % 2 ==0:
+            SearchCourseElement(result_courses_pane.interior,loadData[entry], color1=color1, color2= bg1)  
+        else:
+            SearchCourseElement(result_courses_pane.interior,loadData[entry], color1=color2, color2= bg2)  
+
 
     # print(len(result_courses_pane.interior.winfo_children()))        
 
@@ -950,7 +1144,11 @@ cur_courses_pane.pack()
 
 # Load all of the current saved clsses into the scroll pane     FIXME create a scrolling pane for this window
 for entry in range(0,len(current_classes)):
-    create_modern_added_courses_frame(current_classes[entry], entry) 
+
+    if entry % 2 == 0:
+        AddedCourseElement(cur_courses_pane.interior,current_classes[entry], color1=color1, color2= bg1) 
+    else:
+        AddedCourseElement(cur_courses_pane.interior,current_classes[entry], color1=color2, color2= bg2) 
 
 
 

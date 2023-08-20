@@ -159,29 +159,23 @@ class AddedCourseElement(ttk.Frame):
         self.cur_color = color2
 
         self.top_bar = Frame(self, bg = color1)
-        lbl_txt =("%-*s %-*s" % (15, " ".join(dict["Title"].split(" ")[0:2]), 15, dict["Credit"]))
+        self.label = Label(self.top_bar, bg = color1, font = customtkinter.CTkFont(size=15, weight="normal"), width = 65, anchor = "nw")
 
+
+        lbl_txt =("%-*s %-*s" % (15, " ".join(dict["Title"].split(" ")[0:2]), 15, dict["Credit"]))
         if dict["Open"]:
             lbl_txt += ("%-*s : %-*.*s" %      (6,"Open", 20, 8, ("(" + dict["Enrolled"] + "/" + dict["Capacity"] + ")")))
         else:
             lbl_txt += ("%-*s : %-*.*s" %     ( 6,"Closed", 20,20, ("(" + dict["Enrolled"] + "/" + dict["Capacity"] + ")")))
-
         lbl_txt += ("%-*s : %s" % (3, dict["Days"], time_to_str(dict["Start"]) + " - " + time_to_str(dict["End"])))
-
-
-        self.label = Label(self.top_bar, bg = color1, text = lbl_txt, font = customtkinter.CTkFont(size=15, weight="normal"), width = 65, anchor = "nw")
+        self.label["text"] = lbl_txt
 
 
         Checkbutton(self.top_bar, text = "Hide Class",  font = customtkinter.CTkFont(size=10, weight="normal"), relief=RIDGE, bd = 2).pack( side = RIGHT, anchor = "n", padx = 3, pady=2)   
-
-        # Button(f, text = "Add", font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n")
         customtkinter.CTkButton(self.top_bar, text = "Remove", fg_color="#ff8b05", width = 50, height = 20, font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", padx = 5, pady = 2)
+        customtkinter.CTkButton(self.top_bar, text = "Info", command = self.toggle_dropdown, fg_color="#0000FF", width = 50, height = 20,  font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", pady = 2)
+        
 
-        # Button(f, text = "Info", command = lambda *args: toggle_drop_down(f, dict), font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n")
-        customtkinter.CTkButton(self.top_bar, text = "Info",  fg_color="#0000FF", width = 50, height = 20, command = self.toggle_dropdown, font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", pady = 2)
-        
-        
-        
         self.label.pack()
         self.top_bar.pack(side = TOP, anchor="w")
         self.pack(anchor="w")
@@ -193,25 +187,19 @@ class AddedCourseElement(ttk.Frame):
             self.text.destroy()
             self.text = None
 
-
     def make_text(self):        
         self.text = Text(self,  padx = 5, font="Helvetica 9", spacing1=5, wrap=WORD, width=101, bd = 0, bg = self.cur_color)
-
         self.text.tag_configure("bold", font="Helvetica 9 bold")
         self.text.tag_configure("blue",foreground="blue")
  
-
         self.text.insert("end", self.dict["Title"],"blue") 
         self.text.insert("end", "\nOffered: ","bold", " ".join(self.dict["Offered"] )) 
         self.text.insert("end", "\nInstructor: ","bold", self.dict["Instructor"]) 
         self.text.insert("end", "\nRoom: ","bold", self.dict["Room"]) 
         self.text.insert("end", "\nDescription: ","bold", self.dict["Description"]) 
 
-
-        self.text.configure(state='disabled',height = int(self.text.index('end').split('.')[0]) + 1)
-        
+        self.text.configure(state='disabled',height = int(self.text.index('end').split('.')[0]) + 1)       
         self.text.pack(side = BOTTOM, anchor="w")
-
 
     def _change_mode(self, mode):
         if mode == "normal":
