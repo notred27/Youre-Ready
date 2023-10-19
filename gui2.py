@@ -11,9 +11,10 @@ from tkinter import *
 from tkinter import ttk
 import json
 load_dropbox = json.loads(open("dropbox_info.json", "r").read())["Dept"]
+load_dropbox.remove("")
 
 OUTPUT_PATH = Path(__file__).parent
-ASSETS_PATH = OUTPUT_PATH / Path("C:/Users/miker/Documents/GitHub/WebScraper/assets")
+ASSETS_PATH = OUTPUT_PATH / Path("assets")
 
 
 def relative_to_assets(path: str) -> Path:
@@ -57,7 +58,7 @@ class CustomDropDown(Frame):
         scrollbar = Scrollbar(self.scroll_frame)
         scrollbar.pack( side = RIGHT, fill=Y )
 
-        self.list = Listbox(self.scroll_frame,width = 44, yscrollcommand = scrollbar.set )  #TODO: adaptive height when less than num elements?
+        self.list = Listbox(self.scroll_frame,width = 44, yscrollcommand = scrollbar.set, borderwidth=0, highlightthickness=0,selectmode=SINGLE)  #TODO: adaptive height when less than num elements?
         # for line in range(100):
         #     # self.list.insert(END, "This is line number " + str(line))
         #     self.values.append( "This is line number " + str(line))
@@ -66,7 +67,7 @@ class CustomDropDown(Frame):
         scrollbar.config( command = self.list.yview )
 
         self.canvas.pack(anchor="n",side=TOP)
-        self.scroll_frame.pack(side=BOTTOM)
+        # self.scroll_frame.pack(side=BOTTOM)
 
 
         self.entry.bind('<Button-1>', self.clear_text)
@@ -80,39 +81,47 @@ class CustomDropDown(Frame):
 
             for i in range(len(self.values)):
                 self.list.insert(self.list.size(), self.values[i])
-        print("clear text clicked")
+        self.scroll_frame.pack(side=BOTTOM)
 
 
 
     def manage_input(self, event):
         value = self.entry.get()
+        self.list.delete(0, self.list.size())
 
         if value == '':
-            # self['values'] = self.values
             for i in range(len(self.values)):
                 self.list.insert(self.list.size(), self.values[i])
+            self.list.config(height= 11)
 
-        else:
-            print("here")
-            self.list.delete(0, self.list.size())
+        else:   #TODO try to condense following lines
+            
             data = []
             for item in self.values:
                 if value.lower() in item.lower():
-                    print(item)
                     data.append(item)
             data.sort()
             for i in range(len(data)):
                 self.list.insert(self.list.size(), data[i])
-            pass
+            
+            if len(data) < 11:
+                self.list.config(height= len(data))
+            else:
+                self.list.config(height= 11)
+
 
     def toggle_drop(self, event):
         print("toggle drop clicked")
         self.scroll_frame.forget()
 
     def select(self, event):
-        
-        self.entry.delete(0,len(self.entry.get()))
-        self.entry.insert(0, self.list.selection_get())
+        try:
+            self.entry.delete(0,len(self.entry.get()))
+            self.entry.insert(0, self.list.selection_get())
+            self.list.selection_clear(0, len(self.values))
+            self.scroll_frame.forget()
+        except:
+            pass
        
 
 
