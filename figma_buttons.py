@@ -3,8 +3,22 @@ from tkinter import*
 from tkinter import ttk
 import json
 
+from pathlib import Path
+
+# from tkinter import *
+# Explicit imports to satisfy Flake8
+from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage
 
 
+OUTPUT_PATH = Path(__file__).parent
+ASSETS_PATH = OUTPUT_PATH / Path("assets")
+
+
+def relative_to_assets(path: str) -> Path:
+    return ASSETS_PATH / Path(path)
+
+
+day_lookup = {"M":"Monday", "T":"Tuesday", "W":"Wednesday", "R":"Thursday", "F":"Friday", "S":"Saturday", "U":"Sunday"}
 current_classes = json.loads(open("saved_classes.json", "r").read())
 
 
@@ -66,14 +80,11 @@ def time_to_str(time):
 
 
 
-root = Tk()
-root.title('UR Ready')  #Title for window
-root.geometry("890x650")
-root.option_add("*Font", ("Adobe Garamond Pro Bold", 10))
 
 
 
-class ModernAddedCourseElement(ttk.Frame):
+
+class ModernCourseElement(ttk.Frame):
     def __init__(self, parent,dict = None, type = "g",mode=FALSE , *args, **kw):
         ttk.Frame.__init__(self, parent, *args, **kw)
 
@@ -227,21 +238,21 @@ class ModernAddedCourseElement(ttk.Frame):
     def _change_mode(self, mode):   #change later to update which images are used
         pass
 
-day_lookup = {"M":"Monday", "T":"Tuesday", "W":"Wednesday", "R":"Thursday", "F":"Friday", "S":"Saturday", "U":"Sunday"}
-
-from pathlib import Path
-
-# from tkinter import *
-# Explicit imports to satisfy Flake8
-from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage
 
 
-OUTPUT_PATH = Path(__file__).parent
-ASSETS_PATH = OUTPUT_PATH / Path("assets")
+root = Tk()
+root.title('UR Ready')  #Title for window
+root.geometry("890x650")
+root.option_add("*Font", ("Adobe Garamond Pro Bold", 10))
+
+tabposition = ttk.Style()
+tabposition.configure('TNotebook', sticky='w', tabposition='sw',borderwidth=0,  highlightthickness = 0)
+tabposition.layout("Tab",
+[('Notebook.tab', {'sticky': 'nswe', 'children':
+    [('Notebook.padding', {'side': 'top', 'sticky': 'nswe', 'children':
+            [('Notebook.label', {'side': 'top', 'sticky': ''})],})],})])
 
 
-def relative_to_assets(path: str) -> Path:
-    return ASSETS_PATH / Path(path)
 
 
 btn_o_info = PhotoImage(
@@ -278,24 +289,6 @@ btn_hide_img = PhotoImage(
 btn_remove_img = PhotoImage(
     file=relative_to_assets("remove_g.png"))
 
-cur_courses_pane = VerticalScrolledFrame(root)
-cur_courses_pane.pack()
-
-
-print(len(current_classes))
-# Load all of the current saved clsses into the scroll pane     FIXME create a scrolling pane for this window
-
-for entry in range(0,10):
-
-    if current_classes[entry]["Open"]:
-        if entry % 2 == 0:
-            ModernAddedCourseElement(cur_courses_pane.interior, dict=current_classes[entry], type = "b")
-        else: 
-            ModernAddedCourseElement(cur_courses_pane.interior, dict=current_classes[entry], type = "o")
-
-    else:
-        ModernAddedCourseElement(cur_courses_pane.interior, dict=current_classes[entry])
-
 
 search_img  = PhotoImage(
     file=relative_to_assets("search_s.png"))
@@ -307,26 +300,39 @@ requirements_img  = PhotoImage(
     file=relative_to_assets("requirements.png"))
 
 
-tabview = ttk.Notebook(root,  height = 600, width = 400)
 
-tabposition = ttk.Style(tabview)
 
-tabposition.configure('TNotebook', sticky='w', tabposition='sw',borderwidth=0,  highlightthickness = 0)
-
-# notebook = ttk.Notebook(root, width=1450, height=510)
-# notebook.pack(fill="both",expand=1)
-tabposition.layout("Tab",
-[('Notebook.tab', {'sticky': 'nswe', 'children':
-    [('Notebook.padding', {'side': 'top', 'sticky': 'nswe', 'children':
-        #[('Notebook.focus', {'side': 'top', 'sticky': 'nswe', 'children':
-            [('Notebook.label', {'side': 'top', 'sticky': ''})],
-        #})],
-    })],
-})]
-)
+cur_courses_pane = VerticalScrolledFrame(root)
+cur_courses_pane.pack()
 
 
 
+
+
+
+
+
+
+# tabview = ttk.Notebook(root,  height = 600, width = 400)
+
+
+
+
+
+
+print(len(current_classes))
+# Load all of the current saved clsses into the scroll pane     FIXME create a scrolling pane for this window
+
+for entry in range(0,10):
+
+    if current_classes[entry]["Open"]:
+        if entry % 2 == 0:
+            ModernCourseElement(cur_courses_pane.interior, dict=current_classes[entry], type = "b")
+        else: 
+            ModernCourseElement(cur_courses_pane.interior, dict=current_classes[entry], type = "o")
+
+    else:
+        ModernCourseElement(cur_courses_pane.interior, dict=current_classes[entry])
 
 search = ttk.Frame(tabview)
 results = ttk.Frame(tabview)

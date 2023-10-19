@@ -11,7 +11,7 @@ from selenium.webdriver.support.ui import Select
 import threading
 import lxml.html
 import customtkinter
-
+from pathlib import Path
 
 #TODO: fix minor errors,  restrictions scraping (addig bold to this text), 
 #  dropdown menues for selected courses, add graphical elements when searching for quereys / no results are found, make
@@ -36,6 +36,7 @@ import customtkinter
 
 # TODO for overlapping classes, add a yellow triangle in the bottom right with the number of classes in that space
 # For writing classes, workshops, recitations, add something to make it stand out on the calender
+day_lookup = {"M":"Monday", "T":"Tuesday", "W":"Wednesday", "R":"Thursday", "F":"Friday", "S":"Saturday", "U":"Sunday"}
 
 
 color1 = "#fcfc5d"
@@ -85,117 +86,6 @@ class CustomCombobox(ttk.Combobox):
         self['values'] = self.values
 
 
-class AddedCourseElement(ttk.Frame):
-    def __init__(self, parent,dict = None, color1 = "red", color2 = "green", *args, **kw):
-        ttk.Frame.__init__(self, parent,name = dict["Title"].lower(), *args , **kw)
-
-        self.color1 = color1
-        self.color2 = color2
-        self.dict = dict
-        self.text = None
-
-        self.cur_color = color2
-
-        self.top_bar = Frame(self, bg = color1)
-        self.label = Label(self.top_bar, bg = color1, font = customtkinter.CTkFont(size=15, weight="normal"), width = 65, anchor = "nw")
-
-
-        lbl_txt =("%-*s %-*s" % (15, " ".join(dict["Title"].split(" ")[0:2]), 15, dict["Credit"]))
-        if dict["Open"]:
-            lbl_txt += ("%-*s : %-*.*s" %      (6,"Open", 20, 8, ("(" + dict["Enrolled"] + "/" + dict["Capacity"] + ")")))
-        else:
-            lbl_txt += ("%-*s : %-*.*s" %     ( 6,"Closed", 20,20, ("(" + dict["Enrolled"] + "/" + dict["Capacity"] + ")")))
-        lbl_txt += ("%-*s : %s" % (3, dict["Days"], time_to_str(dict["Start"]) + " - " + time_to_str(dict["End"])))
-        self.label["text"] = lbl_txt
-
-        if not dict["Open"]:
-            self.label["fg"] = "red"
-
-
-        self.var = tkinter.IntVar()
-        self.var.set(int(not dict["Showing"]))
-
-
-        Checkbutton(self.top_bar, text = "Hide Class", variable=self.var, command= self.toggle_show, font = customtkinter.CTkFont(size=10, weight="normal"), relief=RIDGE, bd = 2).pack( side = RIGHT, anchor = "n", padx = 3,pady=2)   
-        customtkinter.CTkButton(self.top_bar, text = "Remove",command=self.remove_course_from_schedule, fg_color="#ff8b05", width = 50, height = 20, font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", padx = 5, pady = 2)
-        customtkinter.CTkButton(self.top_bar, text = "Info", command = self.toggle_dropdown, fg_color="#0000FF", width = 50, height = 20,  font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", pady = 2)
-        
-
-        self.label.pack()
-        self.top_bar.pack(side = TOP, anchor="w")
-        self.pack(anchor="w")
-
-        self.toggle_show()
-
-    def toggle_dropdown(self):
-        if self.text == None:
-            self.make_text()
-        else:
-            self.text.destroy()
-            self.text = None
-
-    def make_text(self):        
-        self.text = Text(self,  padx = 5, font="Helvetica 9", spacing1=5, wrap=WORD, width=101, bd = 0, bg = self.cur_color)
-        self.text.tag_configure("bold", font="Helvetica 9 bold")
-        self.text.tag_configure("blue",foreground="blue")
- 
-        self.text.insert("end", self.dict["Title"],"blue") 
-        self.text.insert("end", "\nOffered: ","bold", " ".join(self.dict["Offered"] )) 
-        self.text.insert("end", "\nInstructor: ","bold", self.dict["Instructor"]) 
-        self.text.insert("end", "\nRoom: ","bold", self.dict["Room"]) 
-        self.text.insert("end", "\nDescription: ","bold", self.dict["Description"]) 
-
-        self.text.configure(state='disabled',height = int(self.text.index('end').split('.')[0]) + 1)       
-        self.text.pack(side = BOTTOM, anchor="w")
-
-    def _change_mode(self, mode):
-        if mode == "normal":
-            self.label["bg"] = self.color1
-            self.top_bar["bg"] = self.color1
-            
-            self.cur_color = self.color2
-
-            if self.text != None:
-                self.text["bg"] = self.color2 
-
-        if mode == "hidden":
-            self.label["bg"] = "#c7cdd6"
-            self.top_bar["bg"] = "#c7cdd6"
-            
-            self.cur_color = "#e7eff8"
-
-            if self.text != None:
-                self.text["bg"] = "#e7eff8"
-
-        if mode == "overlap":
-            self.label["bg"] = "#ffc2cc"
-            self.top_bar["bg"] = "#ffc2cc"
-            
-            self.cur_color = "#f8dee7"
-
-            if self.text != None:
-                self.text["bg"] = "#f8dee7"
-
-    def remove_course_from_schedule(self):
-        if(self.dict in current_classes):
-            current_classes.remove(self.dict)
-            
-        self.destroy()
-        draw_cal()
-        draw_header()
-
-
-    def toggle_show(self):   #Intermediate function to work with IntVar so courses can be serialized using json
-        if self.var.get() == 0:
-            self.dict["Showing"] = True
-            self._change_mode("normal")
-        else:
-            self.dict["Showing"] = False
-            self._change_mode("hidden")
-            
-        update_overlap()
-        draw_cal()
-        draw_header()
 
 
 
@@ -222,74 +112,217 @@ def update_overlap():       #TODO update so that this also controls the colors o
                 
         
 
-class SearchCourseElement(ttk.Frame):
-    def __init__(self, parent,dict = None, color1 = "red", color2 = "green", *args, **kw):
-        ttk.Frame.__init__(self, parent, *args , **kw)
 
-        self.color1 = color1
-        self.color2 = color2
+class ModernCourseElement(ttk.Frame):
+    def __init__(self, parent,dict = None, type = "g",mode=TRUE , *args, **kw):
+        ttk.Frame.__init__(self, parent, *args, **kw)
+
+       
         self.dict = dict
-        self.text = None
+        self.type = type
+        self.mode = mode
 
-        self.cur_color = color2
 
-        self.top_bar = Frame(self, bg = color1)
-        self.label = Label(self.top_bar, bg = color1, font = customtkinter.CTkFont(size=15, weight="normal"), width = 65, anchor = "nw")
+        if self.type == "b":
+            self.add_img = btn_b_add
+            self.info_img = btn_b_info
+            self.banner_img = banner_b
+            self.body_img = body_b
+            self.bg_color = "#ADD8E5"
+        elif self.type == "o":
+            self.add_img = btn_o_add
+            self.info_img = btn_o_info
+            self.banner_img = banner_o
+            self.body_img = body_o
+            self.bg_color = "#FFF684"
+        else: #TYPE == "G"
+            self.add_img = btn_g_add
+            self.info_img = btn_g_info
+            self.banner_img = banner_g
+            self.body_img = body_g
+            self.bg_color = "#D8D8D8"
 
-        if not dict["Open"]:
-            self.label["fg"] = "red"
+        self.show_img = btn_show_img
+        self.hide_img = btn_hide_img
+        self.remove_img = btn_remove_b
 
-        lbl_txt =("%-*s %-*s" % (15, " ".join(dict["Title"].split(" ")[0:2]), 15, dict["Credit"]))
-        if dict["Open"]:
-            lbl_txt += ("%-*s : %-*.*s" %      (6,"Open", 20, 8, ("(" + dict["Enrolled"] + "/" + dict["Capacity"] + ")")))
-        else:
-            lbl_txt += ("%-*s : %-*.*s" %     ( 6,"Closed", 20,20, ("(" + dict["Enrolled"] + "/" + dict["Capacity"] + ")")))
-        lbl_txt += ("%-*s : %s" % (3, dict["Days"], time_to_str(dict["Start"]) + " - " + time_to_str(dict["End"])))
-        self.label["text"] = lbl_txt
+        self.canvas = Canvas(self, bg = "#FFFFFF",height = 54,width = 680,bd = 0,highlightthickness = 0,relief = "ridge")
+        self.canvas.create_rectangle(0,0,681.0,54,fill="#EDEDED",outline="")
+        self.draw_banner()
 
-        customtkinter.CTkButton(self.top_bar, text = "Add",command=self.add_course_to_schedule, fg_color="#ff8b05", width = 50, height = 20, font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", padx = 5, pady = 2)
-        customtkinter.CTkButton(self.top_bar, text = "Info", command = self.toggle_dropdown, fg_color="#0000FF", width = 50, height = 20,  font = customtkinter.CTkFont(size=10, weight="normal")).pack(side = RIGHT, anchor="n", pady = 2)
-        
-        self.label.pack()
-        self.top_bar.pack(side = TOP, anchor="w")
+                
+        self.btn_info = Button(self.canvas,image=self.info_img, borderwidth=0,highlightthickness=0,command = lambda *args: self.toggle_dropdown(),relief="flat")
+        self.btn_info.place(in_=self.canvas,x=579.0,y=7.0,width=95.0,height=21.0)#width and height are 2 less than they should be: hack to fix white border on click #FIXME
+
+        if mode:
+            self.btn_add = Button(self.canvas,image=self.add_img,borderwidth=0,highlightthickness=0,command = lambda: self.add_course_to_schedule(),relief="flat")
+            self.btn_add.place(in_=self.canvas,x=507.0,y=7.0,width=52.0,height=21.0) #width and height are 2 less than they should be: hack to fix white border on click #FIXME
+        else:   #TODO make these rely on local values, not the global ones
+            self.btn_remove = Button(self.canvas,image=self.remove_img,borderwidth=0,highlightthickness=0,command = lambda: self.remove_course_from_schedule(),relief="flat")
+            self.btn_remove.place(in_=self.canvas,x=507.0,y=7.0,width=62.0,height=21.0) #width and height are 2 less than they should be: hack to fix white border on click #FIXME
+
+            self.btn_show = Button(self.canvas,image=self.hide_img,borderwidth=0,highlightthickness=0,command = lambda: self.toggle_show(),relief="flat")
+            self.btn_show.place(in_=self.canvas,x=600.0,
+                y=34.0,
+                width=52.0,
+                height=14.0) #width and height are 2 less than they should be: hack to fix white border on click #FIXME
+
+
+        self.canvas.pack(pady = (10,0))
         self.pack(anchor="w")
 
-
     def toggle_dropdown(self):
-        if self.text == None:
-            self.make_text()
+        if self.canvas.winfo_height() <= 60:
+            self.make_text(self.dict)
         else:
-            self.text.destroy()
-            self.text = None
+            self.canvas.config(height=54)
+            self.canvas.create_rectangle(0,0,681.0,54,fill="#EDEDED",outline="")
+            self.draw_banner()
+           
+        
+    def draw_banner(self):
+        # Create banner
+        self.canvas.create_image(0,0, anchor=NW, image=self.banner_img)
 
-    def make_text(self):        
-        self.text = Text(self,  padx = 5, font="Helvetica 9", spacing1=5, wrap=WORD, width=89, bd = 0, bg = self.cur_color)
-        self.text.tag_configure("bold", font="Helvetica 9 bold")
-        self.text.tag_configure("blue",foreground="blue")
- 
-        self.text.insert("end", self.dict["Title"],"blue") 
-        self.text.insert("end", "\nOffered: ","bold", " ".join(self.dict["Offered"] )) 
-        self.text.insert("end", "\nInstructor: ","bold", self.dict["Instructor"]) 
-        self.text.insert("end", "\nRoom: ","bold", self.dict["Room"]) 
-        self.text.insert("end", "\nDescription: ","bold", self.dict["Description"]) 
+        # Course Number
+        self.canvas.create_text(14.0,9.0,anchor="nw",text=" ".join(self.dict["Title"].split(" ")[0:2]),fill="#FFFFFF",font=("IstokWeb Bold", 16 * -1, "bold"))
 
-        self.text.configure(state='disabled',height = int(self.text.index('end').split('.')[0]) + 1)       
-        self.text.pack(side = BOTTOM, anchor="w")
+        days = []
+        for d in self.dict["Days"]:
+            days.append(day_lookup[d])
+
+        self.canvas.create_text(170.0,9.0,anchor="nw",text=("/".join(days) + ": " + time_to_str(self.dict["Start"]) + " - " + time_to_str(self.dict["End"])),fill="#FFFFFF",font=("IstokWeb Bold", 14 * -1, "bold"))
+
+        self.canvas.create_text(20.0,30.0,anchor="nw",text=self.dict["Credit"] + " credits",fill="#FFFFFF",font=("IstokWeb Bold", 10 * -1, "bold"))
+
+        if self.dict["Open"]:
+            self.canvas.create_text(454.0,9.0,anchor="nw",text="Open",fill="#FFFFFF",font=("IstokWeb Bold", 14 * -1, "bold"))
+        else:
+            self.canvas.create_text(454.0,9.0,anchor="nw",text="Closed",fill="#FFFFFF",font=("IstokWeb Bold", 14 * -1, "bold"))
+        #Split this into 2 that sit on top of each other?
+        # canvas.create_text(170.0,9.0,anchor="nw",text="Monday/Wednesday: 615pm - 730 pm",fill="#FFFFFF",font=("IstokWeb Bold", 14 * -1))
+
+
+    def make_text(self, dict):     
+        #Find number of lines needing and manually wrap text
+        t = self.dict["Description"].split(" ")
+        the_text = "                       " # Buffer hack for spaing on bold description
+        line = ""
+        for i in range(len(t)):
+            if t[i][:1] == "\n":
+                line += "\n"
+                the_text += line
+                line = t[i]
+
+            elif len(line) + len(t[i]) + 1 <= 110:
+                line += " " + t[i]
+            else:
+                line += "\n"
+                the_text += line
+                line = t[i]
+        the_text += line
+
+
+        #This is the number of lines the text will be
+        num_lines = the_text.count("\n")
+
+        # Dynamically size canvas and bg to the text length
+        self.canvas.config(height=140 + 12 * max(0,num_lines-3) + 72)
+        self.canvas.create_rectangle(0,0,681.0,140 + 12 * max(0,num_lines-3) + 72,fill="#EDEDED",outline="")
+        self.canvas.create_image(0,140 + 12 * max(0,num_lines-3), anchor=NW, image=self.body_img)
+        self.canvas.create_rectangle(0.0,20.0,681.0,140 + 12 * max(0,num_lines-3),fill=self.bg_color,outline="")
+
+        self.draw_banner()
+
+        # Title & Enrolled
+        self.canvas.create_text(7.0,66.0,anchor="nw",text=self.dict["Title"],fill="#000000",font=("IstokWeb", 14 * -1, "bold"))
+        self.canvas.create_text(573.0,66.0,anchor="nw",text= dict["Enrolled"] + "/" + dict["Capacity"] +" Enrolled",fill="#000000",font=("IstokWeb Bold", 12 * -1, "bold"))
+        
+        # Semesters offered
+        self.canvas.create_text(7.0,89.0,anchor="nw",text="Offered: ",fill="#000000",font=("IstokWeb Bold", 12 * -1,'bold'))
+        self.canvas.create_text(57.0,89.0,anchor="nw",text=(", ".join(self.dict["Offered"])),fill="#000000",font=("IstokWeb Bold", 12 * -1))
+
+        # Instructor           
+        self.canvas.create_text(7.0,106.0,anchor="nw",text="Instructor: ",fill="#000000",font=("IstokWeb Bold", 12 * -1, "bold"))
+        self.canvas.create_text(70.0,106.0,anchor="nw",text=self.dict["Instructor"],fill="#000000",font=("IstokWeb Bold", 12 * -1))
+
+        # Room
+        self.canvas.create_text(7.0,123.0,anchor="nw",text="Room: ",fill="#000000",font=("IstokWeb Bold", 12 * -1,'bold'))
+        self.canvas.create_text(47.0,123.0,anchor="nw",text=self.dict["Room"],fill="#000000",font=("IstokWeb Bold", 12 * -1))
+
+        # Class description
+        self.canvas.create_text(7.0,140.0,anchor="nw",text="Description: ",fill="#000000",font=("IstokWeb Bold", 12 * -1,'bold'))
+        self.canvas.create_text(7.0,140.0,anchor="nw",text=the_text,fill="#000000",font=("IstokWeb Bold", 12 * -1))
+
+
+    def toggle_show(self):
+        #FIXME info button not switching colors, error
+        if self.dict["Showing"]:
+            # Switch button images
+            self.btn_show.config(image=self.show_img)
+            self.btn_info.config(image=btn_g_info)
+            self.btn_remove.config(image=btn_remove_g)
+            self.dict["Showing"] = False
+
+            #Set color type to g
+            self.banner_img = banner_g
+            self.body_img = body_g
+            self.bg_color = "#D8D8D8"
+
+
+        else:
+            # Switch button images
+            self.btn_show.config(image=self.hide_img)
+            self.btn_info.config(image=self.info_img)
+            self.btn_remove.config(image=self.remove_img)
+            self.dict["Showing"] = True
+
+            # Set pallet back to normal
+            if self.type == "b":
+                self.banner_img = banner_b
+                self.body_img = body_b
+                self.bg_color = "#ADD8E5"
+            elif self.type == "o":
+                self.banner_img = banner_o
+                self.body_img = body_o
+                self.bg_color = "#FFF684"
+            else: # Safety case (type == "g")
+                self.banner_img = banner_g
+                self.body_img = body_g
+                self.bg_color = "#D8D8D8"
+
+        self.draw_banner()
+        #TODO make a check if the body needs to be redrawn
+        update_overlap()
+        draw_cal()
+        draw_header()
+
 
     def add_course_to_schedule(self):
         if self.dict not in current_classes:
             current_classes.append(self.dict)
 
             if(len(current_classes) % 2 == 1):
-                AddedCourseElement(cur_courses_pane.interior,self.dict, color1=color1, color2= bg1)
+                ModernCourseElement(cur_courses_pane.interior,self.dict,mode=FALSE, type ="b")
             else:
-                AddedCourseElement(cur_courses_pane.interior,self.dict, color1=color2, color2= bg2)
+                ModernCourseElement(cur_courses_pane.interior,self.dict,mode=FALSE, type ="b")
             for day in self.dict["Days"]:
                 draw_class( day, " ".join(self.dict["Title"].split(" ")[0:3]), self.dict["Start"], color = "blue")
         update_overlap()
         draw_cal()
         draw_header()
 
+
+    def remove_course_from_schedule(self):
+        if(self.dict in current_classes):
+            current_classes.remove(self.dict)
+            
+        self.destroy()
+        draw_cal()
+        draw_header()
+
+
+        
 
 
 class VerticalScrolledFrame(ttk.Frame):
@@ -523,9 +556,10 @@ def change_displayed_courses(startI, endI):
 
     for entry in range(startI-1,endI):
         if entry % 2 ==0:
-            SearchCourseElement(result_courses_pane.interior,loadData[entry], color1=color1, color2= bg1)  
+            ModernCourseElement(result_courses_pane.interior,loadData[entry], type = "b")
+            
         else:
-            SearchCourseElement(result_courses_pane.interior,loadData[entry], color1=color2, color2= bg2)  
+            ModernCourseElement(result_courses_pane.interior,loadData[entry], type = "b")
      
 
 
@@ -799,6 +833,61 @@ root.option_add("*Font", ("Adobe Garamond Pro Bold", 10))
 
 root.protocol("WM_DELETE_WINDOW", save_and_quit)
 
+#===================== Load Assets =====================#
+
+OUTPUT_PATH = Path(__file__).parent
+ASSETS_PATH = OUTPUT_PATH / Path("assets")
+
+def relative_to_assets(path: str) -> Path:
+    return ASSETS_PATH / Path(path)
+
+
+btn_o_info = PhotoImage(
+    file=relative_to_assets("info_o.png"))
+btn_o_add = PhotoImage(
+    file=relative_to_assets("add_o.png"))
+banner_o = PhotoImage(
+    file=relative_to_assets("banner_o.png"))
+body_o = PhotoImage(
+    file=relative_to_assets("body_o.png"))
+
+btn_b_info = PhotoImage(
+    file=relative_to_assets("info_b.png"))
+btn_b_add = PhotoImage(
+    file=relative_to_assets("add_b.png"))
+banner_b = PhotoImage(
+    file=relative_to_assets("banner_b.png"))
+body_b = PhotoImage(
+    file=relative_to_assets("body_b.png"))
+
+btn_g_info = PhotoImage(
+    file=relative_to_assets("info_g.png"))
+btn_g_add = PhotoImage(
+    file=relative_to_assets("add_g.png"))
+banner_g = PhotoImage(
+    file=relative_to_assets("banner_g.png"))
+body_g = PhotoImage(
+    file=relative_to_assets("body_g.png"))
+
+btn_show_img = PhotoImage(
+    file=relative_to_assets("show_g.png"))
+btn_hide_img = PhotoImage(
+    file=relative_to_assets("hide_b.png"))
+btn_remove_b = PhotoImage(
+    file=relative_to_assets("remove_b.png"))
+btn_remove_g = PhotoImage(
+    file=relative_to_assets("remove_g.png"))
+
+
+search_img  = PhotoImage(
+    file=relative_to_assets("search_s.png"))
+results_img  = PhotoImage(
+    file=relative_to_assets("results.png"))
+schedule_img  = PhotoImage(
+    file=relative_to_assets("schedule.png"))
+requirements_img  = PhotoImage(
+    file=relative_to_assets("requirements.png"))
+
 #===================== Calender Component =====================#
 
 calander_frame = Frame(root, bd = 2, relief="solid")
@@ -816,7 +905,12 @@ draw_cal()
 draw_header()
 
 #===================== Set Up Tabview =====================#
-
+tabposition = ttk.Style()
+tabposition.configure('TNotebook', sticky='w', tabposition='nw',borderwidth=0,  highlightthickness = 0)
+tabposition.layout("Tab",
+[('Notebook.tab', {'sticky': 'nswe', 'children':
+    [('Notebook.padding', {'side': 'top', 'sticky': 'nswe', 'children':
+            [('Notebook.label', {'side': 'top', 'sticky': ''})],})],})])
 
 tabview = ttk.Notebook(root,  height = 600, width = 400)
 search = ttk.Frame(tabview)
@@ -824,10 +918,10 @@ results = ttk.Frame(tabview)
 classes = ttk.Frame(tabview)
 requirements = ttk.Frame(tabview)
 
-tabview.add(search, text ='Search')
-tabview.add(results, text ='Results')
-tabview.add(classes, text ='Current Classes')
-tabview.add(requirements, text ='Requirements')
+tabview.add(search, image=search_img)
+tabview.add(results, image = results_img)
+tabview.add(classes, image=schedule_img)
+tabview.add(requirements, image = requirements_img)
 
 tabview.pack(expand = 1, fill ="both")
 
@@ -924,9 +1018,10 @@ cur_courses_pane.pack()
 # Load all of the current saved clsses into the scroll pane
 for entry in range(0,len(current_classes)):
     if entry % 2 == 0:
-        AddedCourseElement(cur_courses_pane.interior,current_classes[entry], color1=color1, color2= bg1) 
+        ModernCourseElement(cur_courses_pane.interior,current_classes[entry],mode=FALSE, type ="b")
     else:
-        AddedCourseElement(cur_courses_pane.interior,current_classes[entry], color1=color2, color2= bg2) 
+        ModernCourseElement(cur_courses_pane.interior,current_classes[entry],mode=FALSE, type = "b")
+
 
 
 print(time.strftime("%H:%M:%S", time.localtime()), "    -Starting Program")
