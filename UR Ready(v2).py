@@ -44,6 +44,100 @@ bg1 = "#f5f5bf"
 color2 = "#5ec1ff"
 bg2 = "#c5e6fa"
 
+# Create something that merges the looks of the dropdown course menues with scrolable frames that act like comboboxes
+class CustomDropDown(Frame):
+    def __init__(self, parent,text,img, width,text_width, values,list_width=38, *args, **kw):
+        Frame.__init__(self, parent, *args, **kw)
+        self.text = text
+        self.values = values
+
+        # Create canvas and entry box
+        self.canvas = Canvas(self, width = width, height = 60, bg= "#7268A6", bd=0,highlightthickness=0)
+        self.canvas.create_image(2,2, anchor = "nw", image= img)
+        self.entry = Entry(self,bg="#B29EC6",fg= "#f2f4f1",font=("IstokWeb Bold", 20 * -1),bd=0, width = text_width)
+        self.entry.place(in_=self.canvas, x=5, y = 27, anchor="w")
+        self.entry.insert(0, self.text)
+
+        
+        # Create frame and scroll bar for options
+        self.scroll_frame = Frame(self)
+        self.scroll_frame.pack_forget()
+        scrollbar = Scrollbar(self.scroll_frame)
+        scrollbar.pack( side = RIGHT, fill=Y )
+
+        self.list = Listbox(self.scroll_frame,width = list_width, yscrollcommand = scrollbar.set, borderwidth=0, highlightthickness=0,selectmode=SINGLE)  
+        self.list.pack( side = LEFT,anchor="s", fill = BOTH )
+    
+        scrollbar.config(command = self.list.yview)
+        self.canvas.pack(anchor="n",side=TOP)
+
+
+        # Bind events
+        self.entry.bind('<Button-1>', self.clear_text)
+
+        if self.values != None:
+            self.entry.bind('<KeyRelease>', self.manage_input)
+            self.list.bind('<Button-1>', self.select_option)
+
+
+    def clear_text(self, event):
+        # Used to clear the starting text in th entry and toggle the drop down list
+        if self.entry.get() == self.text:
+            self.entry.delete(0,len(self.text)+ 1)
+
+            for i in range(len(self.values)):
+                self.list.insert(self.list.size(), self.values[i])
+
+        if self.values != None:
+            self.scroll_frame.pack(side=BOTTOM)
+
+
+    def manage_input(self, event):
+        # Used to change what is shown in hte drop down list
+        self.list.config(height= 11)
+        value = self.entry.get()
+        self.list.delete(0, self.list.size())
+
+        if value == '':
+            for i in range(len(self.values)):
+                self.list.insert(self.list.size(), self.values[i])
+            
+
+        else:   #TODO try to condense following lines
+            data = []
+            for item in self.values:
+                if value.lower() in item.lower():
+                    data.append(item)
+            data.sort()
+            for i in range(len(data)):
+                self.list.insert(self.list.size(), data[i])
+            
+
+        if len(data) < 11:
+            self.list.config(height= len(data))
+            
+
+
+    def select_option(self, event): #FIXME Error with different widgets getting input from each other??
+        # Used to select a value from the drop down list
+        try:    #FIXME edge case when first selescting a value
+            if self.entry.get() != self.list.selection_get():
+                self.entry.delete(0,len(self.entry.get()))
+                self.entry.insert(0, self.list.selection_get())
+                self.list.selection_clear(0, len(self.values))
+                self.scroll_frame.forget()
+        except:
+            pass
+       
+    def get(self):
+        # Get the current entry text
+
+        if self.entry.get() == self.text:
+            return "" #Make sure starting text isn't passed forward
+        return self.entry.get()
+
+
+
 class CustomCombobox(ttk.Combobox):
     def __init__(self, parent,values = None, startingText = '',fg = 'black',  *args, **kw):
         ttk.Combobox.__init__(self, parent, *args, **kw)
@@ -154,7 +248,7 @@ class ModernCourseElement(ttk.Frame):
         self.btn_info = Button(self.canvas,image=self.info_img, borderwidth=0,highlightthickness=0,command = lambda *args: self.toggle_dropdown(),relief="flat")
         self.btn_info.place(in_=self.canvas,x=579.0,y=7.0,width=95.0,height=21.0)#width and height are 2 less than they should be: hack to fix white border on click #FIXME
 
-        if mode:
+        if mode:  #Mode represents if its a search element or a result element
             self.btn_add = Button(self.canvas,image=self.add_img,borderwidth=0,highlightthickness=0,command = lambda: self.add_course_to_schedule(),relief="flat")
             self.btn_add.place(in_=self.canvas,x=507.0,y=7.0,width=52.0,height=21.0) #width and height are 2 less than they should be: hack to fix white border on click #FIXME
         else:   #TODO make these rely on local values, not the global ones
@@ -185,15 +279,15 @@ class ModernCourseElement(ttk.Frame):
         self.canvas.create_image(0,0, anchor=NW, image=self.banner_img)
 
         # Course Number
-        self.canvas.create_text(14.0,9.0,anchor="nw",text=" ".join(self.dict["Title"].split(" ")[0:2]),fill="#FFFFFF",font=("IstokWeb Bold", 16 * -1, "bold"))
+        self.canvas.create_text(14.0,9.0,anchor="nw",text=self.dict["Title"],fill="#FFFFFF",font=("IstokWeb Bold", 16 * -1, "bold"))
 
         days = []
         for d in self.dict["Days"]:
             days.append(day_lookup[d])
 
-        self.canvas.create_text(170.0,9.0,anchor="nw",text=("/".join(days) + ": " + time_to_str(self.dict["Start"]) + " - " + time_to_str(self.dict["End"])),fill="#FFFFFF",font=("IstokWeb Bold", 14 * -1, "bold"))
+        self.canvas.create_text(100.0,30.0,anchor="nw",text=("/".join(days) + ": " + time_to_str(self.dict["Start"]) + " - " + time_to_str(self.dict["End"])),fill="#FFFFFF",font=("IstokWeb Bold", 12 * -1, "bold"))
 
-        self.canvas.create_text(20.0,30.0,anchor="nw",text=self.dict["Credit"] + " credits",fill="#FFFFFF",font=("IstokWeb Bold", 10 * -1, "bold"))
+        self.canvas.create_text(20.0,30.0,anchor="nw",text=self.dict["Credit"] + " credits",fill="#FFFFFF",font=("IstokWeb Bold", 12 * -1, "bold"))
 
         if self.dict["Open"]:
             self.canvas.create_text(454.0,9.0,anchor="nw",text="Open",fill="#FFFFFF",font=("IstokWeb Bold", 14 * -1, "bold"))
@@ -383,7 +477,7 @@ indxS= 1
 indxE = 0
 numResults = len(loadData)
 
-sleepTime = 60  #For timeout checks
+sleepTime = 20  #For timeout checks
 
 
 # Print initial time
@@ -628,19 +722,20 @@ def fetch(term, dept ="", type = "", courseName = ""):
     result_courses_pane.pack()
 
 
-    courseName = courseSelect.get("1.0",END)
-    desc = titleSelect.get("1.0",END)
+    courseName = id_box.get()
+    desc = keywords_box.get()
 
     # Make sure starting text isn't passed to the program
-    if dept == subjectSelect.startingText:
-            dept = ""
+    # if dept == subject_box.text:
+    #         dept = ""
 
-    if type == typeSelect.startingText:
-        type = ""
+    # if type == course_box.text:
+    #     type = ""
 
+    print(term, dept, type, courseName, desc)
 
     # Verify that the combobox values are valid
-    if term in yearSelect.values and dept in subjectSelect.values and type in typeSelect.values:
+    if term in semester_box.values and dept in subject_box.values and type in course_box.values:
         thread = threading.Thread(target=scrapeHTML, args=[term, dept, type,courseName,desc])
         thread.start()
         root.after(200, check_if_ready, thread)
@@ -690,6 +785,7 @@ def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
     diff = (time.mktime(end_time) - time.mktime(start_time)) 
     if(diff >= sleepTime and len(tables) == 0):     # Check for timeout issues
         print(time.strftime("%H:%M:%S",end_time), " -Timeout error occured")
+        tkinter.messagebox.showerror(title="Search TImeout Error", message="Timeout Error Occured. Please make sure you are connected to a stable internet connection, or increase the timeout duration.")
         #TODO add a graphical element if a timeout connection occured
         return None
 
@@ -888,6 +984,12 @@ schedule_img  = PhotoImage(
 requirements_img  = PhotoImage(
     file=relative_to_assets("requirements.png"))
 
+#Photo images for search widget
+bg_img = PhotoImage(file=relative_to_assets("search_bg.png"))
+search_btn_img = PhotoImage(file=relative_to_assets("search_btn.png"))
+search_long_img = PhotoImage(file=relative_to_assets("search_long.png"))
+search_short_img = PhotoImage(file=relative_to_assets("search_small.png"))
+
 #===================== Calender Component =====================#
 
 calander_frame = Frame(root, bd = 2, relief="solid")
@@ -930,63 +1032,147 @@ tabview.pack(expand = 1, fill ="both")
 
 #===================== Search Component =====================#
 
-searchPane = Frame(search, width = 200, height = 100, relief=GROOVE, bd = 2)
-
-
-styleT = ttk.Style()
-styleT.configure('TCombobox', selectbackground=None, selectforeground=None)
-
-searchLeft = Frame(searchPane)
-searchRight = Frame(searchPane)
-
 print(time.strftime("%H:%M:%S", time.localtime()), "    -Getting Combobox Values")
 browser.get('https://cdcs.ur.rochester.edu/')
 xmlSrc = lxml.html.fromstring(browser.page_source)
 
 
-# Create widgets for the search form
-yearTitle = Label(searchLeft, text="Term (REQUIRED)", fg = "red").pack(anchor='w')
-yearSelect = CustomCombobox(searchLeft,width = 32,values = (xmlSrc.xpath('//*[@id="ddlTerm"]/option/text()')),startingText="Semester (REQ) :")
+searchPane = Frame(search, width = 200, height = 100, relief=GROOVE, bd = 2)
 
 
-yearSelect.bind("<<ComboboxSelected>>",lambda e: searchPane.focus())
-yearSelect.pack()
+search_canvas = Canvas(searchPane,bg = "#F2F4F1",height = 400,width = 696,bd = 0,highlightthickness = 0,relief = "ridge")
+search_canvas.create_image(102,59, anchor = "nw", image= bg_img)
 
-subjectTitle = Label(searchLeft, text="Subject:").pack(anchor='w')
+
+
+
+# 1st long bar
+# canvas.create_image(123,85, anchor = "nw", image= search_long_img)
+
+semester_box = CustomDropDown(searchPane,text = "Semester (REQUIRED):", values = (xmlSrc.xpath('//*[@id="ddlTerm"]/option/text()')), width = 286, img = search_long_img, text_width = 25)
+semester_box.place(in_=search_canvas, x=123,y=85)
+try:
+    semester_box.values.remove("SELECT A TERM")
+except:
+    print("SELECT A TERM text no longer on webpage")
+
+# 2nd long bar
+# canvas.create_image(123,161, anchor = "nw", image= search_long_img)
 vals = (xmlSrc.xpath('//*[@id="ddlDept"]/option/text()'))
 vals.insert(0,"")
-subjectSelect = CustomCombobox(searchLeft, width = 32,values =vals,startingText="Subject :")     # 
-subjectSelect.bind("<<ComboboxSelected>>",lambda e: searchPane.focus())
-subjectSelect.pack()
 
-typeTitle = Label(searchLeft, text="Course Type:").pack(anchor='w')
+subject_box = CustomDropDown(searchPane,text = "Subject:", values = vals, width = 286, img = search_long_img, text_width = 25)
+subject_box.place(in_=search_canvas, x=123,y=161)
+
+# 3rd long bar
+# canvas.create_image(123,237, anchor = "nw", image= search_long_img)
 vals =  (xmlSrc.xpath('//*[@id="ddlTypes"]/option/text()'))
 vals.insert(0,"")
-typeSelect = CustomCombobox(searchLeft,width = 32,  values = vals,startingText="Type :")
-typeSelect.bind("<<ComboboxSelected>>",lambda e: searchPane.focus())
-typeSelect.pack()
+
+course_box = CustomDropDown(searchPane,text = "Course Type:", values = vals, width = 286, img = search_long_img, text_width = 25)
+course_box.place(in_=search_canvas, x=123,y=237)
+
+
+
+
+# 1st short bar
+# canvas.create_image(429,85, anchor = "nw", image= search_short_img)
+id_box = CustomDropDown(searchPane,text = "Course ID:", values = None, width = 146, img = search_short_img, text_width = 12, list_width=21)
+id_box.place(in_=search_canvas, x=429,y=85)
+
+# 2nd short bar
+# search_canvas.create_image(429,161, anchor = "nw", image= search_short_img)
+keywords_box = CustomDropDown(searchPane,text = "Keywords:", values = None, width = 146, img = search_short_img, text_width = 12, list_width=21)
+keywords_box.place(in_=search_canvas, x=429,y=161)
+
+# Checkbutton for hiding unavailable classes
 
 hide_unavailable_var = tkinter.IntVar()
-unavailable_classes_check = Checkbutton(searchLeft, variable= hide_unavailable_var,  text = "Hide Unavailable Classes")
-unavailable_classes_check.bind("<<ComboboxSelected>>",lambda e: searchPane.focus())
-unavailable_classes_check.pack()
+check_btn = Checkbutton(searchPane,bd=0,highlightthickness=0, background="#7268A6", activebackground="#7268A6",variable= hide_unavailable_var)
+check_btn.place(in_=search_canvas, x = 361,y =310)
+search_canvas.create_text(386.0,311.0,anchor="nw",text="Hide unavailable classes",fill="#FFFFFF",font=("IstokWeb Bold", 16 * -1))
 
 
 
-courseTitle = Label(searchRight, text="Course ID:").pack(anchor='w')
-courseSelect = Text(searchRight, height = 1, width = 15, relief=SOLID, bd = 1)
-courseSelect.pack()
 
-titleTitle = Label(searchRight, text="Course Keywords:").pack(anchor='w')
-titleSelect = Text(searchRight, height = 1, width = 15, relief=SOLID, bd = 1)
-titleSelect.pack(pady = (0, 11), anchor='n')
+#Keep lift order so widgets don't obscure each other
+semester_box.lift(aboveThis=subject_box)
+semester_box.lift(aboveThis=course_box)
+subject_box.lift(aboveThis=course_box)
+semester_box.lift(aboveThis=check_btn)
+subject_box.lift(aboveThis=check_btn)
+course_box.lift(aboveThis=check_btn)
+id_box.lift(aboveThis=keywords_box)
 
-search_btn = Button(searchRight, text = "SUBMIT", command=lambda :fetch(yearSelect.get(), subjectSelect.get(), typeSelect.get())).pack()
 
 
 
-searchLeft.pack(side= LEFT, padx=(22,6), pady = 4)
-searchRight.pack(side= RIGHT, padx=(6,22))
+
+search_canvas.pack()
+
+
+# Search button for submitting form
+search_btn = Button(image=search_btn_img,borderwidth=0,highlightthickness=0,command=lambda :fetch(semester_box.get(), subject_box.get(), course_box.get()),relief="flat")
+search_btn.place(in_=search_canvas, x=447.0,y=234.0,width=103.0,height=60.0)
+
+
+
+
+
+# styleT = ttk.Style()
+# styleT.configure('TCombobox', selectbackground=None, selectforeground=None)
+
+# searchLeft = Frame(searchPane)
+# searchRight = Frame(searchPane)
+
+# print(time.strftime("%H:%M:%S", time.localtime()), "    -Getting Combobox Values")
+# browser.get('https://cdcs.ur.rochester.edu/')
+# xmlSrc = lxml.html.fromstring(browser.page_source)
+
+
+# # Create widgets for the search form
+# yearTitle = Label(searchLeft, text="Term (REQUIRED)", fg = "red").pack(anchor='w')
+# yearSelect = CustomCombobox(searchLeft,width = 32,values = (xmlSrc.xpath('//*[@id="ddlTerm"]/option/text()')),startingText="Semester (REQ) :")
+
+
+# yearSelect.bind("<<ComboboxSelected>>",lambda e: searchPane.focus())
+# yearSelect.pack()
+
+# subjectTitle = Label(searchLeft, text="Subject:").pack(anchor='w')
+# vals = (xmlSrc.xpath('//*[@id="ddlDept"]/option/text()'))
+# vals.insert(0,"")
+# subjectSelect = CustomCombobox(searchLeft, width = 32,values =vals,startingText="Subject :")     # 
+# subjectSelect.bind("<<ComboboxSelected>>",lambda e: searchPane.focus())
+# subjectSelect.pack()
+
+# typeTitle = Label(searchLeft, text="Course Type:").pack(anchor='w')
+# vals =  (xmlSrc.xpath('//*[@id="ddlTypes"]/option/text()'))
+# vals.insert(0,"")
+# typeSelect = CustomCombobox(searchLeft,width = 32,  values = vals,startingText="Type :")
+# typeSelect.bind("<<ComboboxSelected>>",lambda e: searchPane.focus())
+# typeSelect.pack()
+
+# hide_unavailable_var = tkinter.IntVar()
+# unavailable_classes_check = Checkbutton(searchLeft, variable= hide_unavailable_var,  text = "Hide Unavailable Classes")
+# unavailable_classes_check.bind("<<ComboboxSelected>>",lambda e: searchPane.focus())
+# unavailable_classes_check.pack()
+
+
+
+# courseTitle = Label(searchRight, text="Course ID:").pack(anchor='w')
+# courseSelect = Text(searchRight, height = 1, width = 15, relief=SOLID, bd = 1)
+# courseSelect.pack()
+
+# titleTitle = Label(searchRight, text="Course Keywords:").pack(anchor='w')
+# titleSelect = Text(searchRight, height = 1, width = 15, relief=SOLID, bd = 1)
+# titleSelect.pack(pady = (0, 11), anchor='n')
+
+# search_btn = Button(searchRight, text = "SUBMIT", command=lambda :fetch(yearSelect.get(), subjectSelect.get(), typeSelect.get())).pack()
+
+
+
+# searchLeft.pack(side= LEFT, padx=(22,6), pady = 4)
+# searchRight.pack(side= RIGHT, padx=(6,22))
 searchPane.pack(anchor="nw", padx =10)
 
 
@@ -1017,9 +1203,10 @@ cur_courses_pane.pack()
 
 # Load all of the current saved clsses into the scroll pane
 for entry in range(0,len(current_classes)):
-    if entry % 2 == 0:
+    if current_classes[entry]["Showing"]:
         ModernCourseElement(cur_courses_pane.interior,current_classes[entry],mode=FALSE, type ="b")
     else:
+        print("not showing") #FIXME make sure classes that start as hidden are added as hidden
         ModernCourseElement(cur_courses_pane.interior,current_classes[entry],mode=FALSE, type = "b")
 
 
