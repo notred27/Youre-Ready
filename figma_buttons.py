@@ -314,8 +314,7 @@ tab_body  = PhotoImage(
 
 
 
-# cur_courses_pane = VerticalScrolledFrame(root)
-# cur_courses_pane.pack()
+
 
 
 
@@ -350,19 +349,6 @@ tabview = ttk.Notebook(root,  height = 600, width = 400)
 
 
 
-# print(len(current_classes))
-# # Load all of the current saved clsses into the scroll pane     FIXME create a scrolling pane for this window
-
-# for entry in range(0,3):
-
-#     if current_classes[entry]["Open"]:
-#         if entry % 2 == 0:
-#             ModernCourseElement(cur_courses_pane.interior, dict=current_classes[entry], type = "b")
-#         else: 
-#             ModernCourseElement(cur_courses_pane.interior, dict=current_classes[entry], type = "o")
-
-#     else:
-#         ModernCourseElement(cur_courses_pane.interior, dict=current_classes[entry])
 
 
 
@@ -386,21 +372,16 @@ class CustomTabview(Frame):
         self.btn_list = []
         self.btn_img_list = []
 
-        self.tab_frame = Frame(self)
         self.current_frame = None
+        self.tab_frame = Frame(self)
         self.content_frame = Frame(self)
-        self.content_frame.pack_propagate(0)
 
         self.tab_frame.pack(side = TOP, anchor="nw", pady = 0)
+        self.content_frame.pack_propagate(0)
         self.content_frame.pack(side=TOP, fill="both", expand = True,pady = 0)
-
-        
-        
-      
 
 
     def switch_tab(self, i):
-
         for j, btn in enumerate(self.btn_list):
             if j == i:
                 self.btn_list[j].config(image= self.btn_img_list[j][1])
@@ -413,17 +394,13 @@ class CustomTabview(Frame):
             self.frame_list[i].grid(row=1,column=1)
 
 
-
     def add_tab(self, id, btn_imgs = None, **kwargs):
         frame = Canvas(self.content_frame, name=id,  **kwargs)
         frame.create_image(0,0, image=tab_body, anchor="nw")
-
-        
-        # use  and index by tab
-        i = len(self.frame_list) 
+    
+        i = len(self.frame_list)     # use  and index by tab
         tab = Button(self.tab_frame, text=id, borderwidth=0, highlightthickness=0, command=lambda: self.switch_tab(i))
         tab.pack(side=LEFT, padx=(0,5))
-
 
         self.frame_list.append(frame)
         self.btn_list.append(tab)
@@ -432,19 +409,14 @@ class CustomTabview(Frame):
         if btn_imgs != None:
             tab.config(image=btn_imgs[0])
 
-
-        
-
         if len(self.frame_list) == 1:   
             self.current_frame = frame
             if btn_imgs != None:
                 tab.config(image = btn_imgs[1])
             frame.grid(row=1,column=1)
 
-
-    def add_element(self, elem, frame_name, x, y):
-        elem.place(in_= self.get(frame_name), x = x, y = y)
-
+    def add_element(self, elem, frame_name, x, y, anchor = "nw"):
+        elem.place(in_= self.get(frame_name), x = x, y = y, anchor = "nw")
 
 
     def get(self, id):
@@ -452,6 +424,8 @@ class CustomTabview(Frame):
             if f.winfo_name() == id:
                 return f
         return None
+    
+    
 
         
         
@@ -469,10 +443,33 @@ c.add_element(b, "results", 100, 100)
 # b.pack(side = LEFT)
 
 
+
+
+cur_courses_pane = VerticalScrolledFrame(root)
+
+
+
+
+c.add_element(cur_courses_pane, "results", 20, 40, anchor="nw")
+
+# print(len(current_classes))
+# # Load all of the current saved clsses into the scroll pane     FIXME create a scrolling pane for this window
+
+for entry in range(0,3):
+
+    if current_classes[entry]["Open"]:
+        if entry % 2 == 0:
+            ModernCourseElement(cur_courses_pane.interior, dict=current_classes[entry], type = "b")
+        else: 
+            ModernCourseElement(cur_courses_pane.interior, dict=current_classes[entry], type = "o")
+
+    else:
+        ModernCourseElement(cur_courses_pane.interior, dict=current_classes[entry])
+
+
+
 c.grid(row=0, column=0)
-
-
-
+#cur_courses_pane.pack()
 
 
 

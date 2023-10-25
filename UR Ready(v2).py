@@ -12,9 +12,18 @@ import threading
 import lxml.html
 import customtkinter
 from pathlib import Path
+import logging
+
+logger = logging.getLogger('UR_READY')
+logger.setLevel(logging.DEBUG)
+
+fh = logging.StreamHandler()
+fh_formatter = logging.Formatter('%(asctime)s - %(message)s')
+fh.setFormatter(fh_formatter)
+logger.addHandler(fh)
 
 #TODO: fix minor errors,  restrictions scraping (addig bold to this text), 
-#  dropdown menues for selected courses, add graphical elements when searching for quereys / no results are found, make
+#  add graphical elements when searching for quereys / no results are found, make
 # sure that any classes that are added are for the same semester
 
 
@@ -39,10 +48,6 @@ from pathlib import Path
 day_lookup = {"M":"Monday", "T":"Tuesday", "W":"Wednesday", "R":"Thursday", "F":"Friday", "S":"Saturday", "U":"Sunday"}
 
 
-color1 = "#fcfc5d"
-bg1 = "#f5f5bf"
-color2 = "#5ec1ff"
-bg2 = "#c5e6fa"
 
 # Create something that merges the looks of the dropdown course menues with scrolable frames that act like comboboxes
 class CustomDropDown(Frame):
@@ -307,7 +312,6 @@ class ModernCourseElement(ttk.Frame):
 
 
     def toggle_show(self):
-        #FIXME info button not switching colors, error
         if self.dict["Showing"]:
             # Switch button images
             self.btn_show.config(image=self.show_img)
@@ -384,7 +388,7 @@ class VerticalScrolledFrame(ttk.Frame):
         vscrollbar = ttk.Scrollbar(self, orient=VERTICAL)
         vscrollbar.pack(fill=Y, side=RIGHT, expand=FALSE)
         self.canvas = Canvas(self, bd=0, highlightthickness=0, bg='#FFECDC',
-                                width = 400, height = 550,
+                                width = 400, height = 450,
                                 yscrollcommand=vscrollbar.set)
         self.canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
         vscrollbar.config(command = self.canvas.yview)
@@ -427,7 +431,7 @@ loadData = []  # json.loads(open("scraped_classes.json", "r").read())
 current_classes = json.loads(open("saved_classes.json", "r").read())
 
 days = ["M", "T", "W","R","F"]
-days2 = ["Monday", "Tuesday", "Wednesday","Thursday","Friday"]
+
 
 # Indexes for shown results
 indxS= 1
@@ -438,8 +442,8 @@ sleepTime = 20  #For timeout checks
 
 
 # Print initial time
-print(time.strftime("%H:%M:%S", time.localtime()), "    -Searching for webpage")
-
+# print(time.strftime("%H:%M:%S", time.localtime()), "    -Searching for webpage")
+logger.info("Searching for webpage")
 
 # Set up browser connection     FIXME
 options = Options()
@@ -515,10 +519,10 @@ def draw_cal(): #  Draw the background for the calender
     plan.delete('all')
 
     plan.create_line(0,0,14 +  400,0)
-    for i in range(0,5):
+    for i, d in enumerate(day_lookup):
         x = 25 +  i * 80
         # plan.create_line(x,20,x,580)
-        plan.create_text(x + 40,10, text=days2[i],  anchor = "center")
+        plan.create_text(x + 40,10, text=day_lookup[d],  anchor = "center")
 
     hours = ["", "8", "9","10","11", "12", "1", "2", "3","4","5", "6", "7","8", ""]
     for i in range(1,14):
@@ -602,7 +606,7 @@ def change_displayed_courses(startI, endI):
     #     c.destroy()
     result_courses_pane.destroy()                               #FIXME quick hack for functionality
     result_courses_pane = VerticalScrolledFrame(results)
-    result_courses_pane.pack()
+    notebook.add_element(result_courses_pane, "results", 20, 50, anchor="nw")
 
 
     for entry in range(startI-1,endI):
@@ -650,10 +654,12 @@ def check_if_ready(thread):
         # not ready yet, run the check again soon
         root.after(200, check_if_ready, thread)
     else:
-        print("Thread has terminated, updating page")
+        # print("Thread has terminated, updating page")
+        logger.info("Scraping Thread has terminated, updating page")
 
         if hide_unavailable_var.get() == 1:
-            print("Removing unavailable classes...")
+            # print("Removing unavailable classes...")
+            logger.info("Removing unavailable classes")
 
             for dict in loadData:
                 if not dict["Open"] or dict["Enrolled"] >= dict["Capacity"]:
@@ -665,8 +671,8 @@ def check_if_ready(thread):
 
 def fetch(term, dept ="", type = "", courseName = ""):
     global result_courses_pane, unavailable_classes_check
-    tabview.select(results)
 
+    notebook.switch_tab(1)  #FIXME I was lazy so change this to be not hard coded to 1
     
     
 
@@ -676,7 +682,7 @@ def fetch(term, dept ="", type = "", courseName = ""):
 
     result_courses_pane.destroy()                               #FIXME quick hack for functionality
     result_courses_pane = VerticalScrolledFrame(results)
-    result_courses_pane.pack()
+    notebook.add_element(result_courses_pane, "results", 20, 50, anchor="nw")
 
 
     courseName = id_box.get()
@@ -689,7 +695,7 @@ def fetch(term, dept ="", type = "", courseName = ""):
     # if type == course_box.text:
     #     type = ""
 
-    print(term, dept, type, courseName, desc)
+    # print(term, dept, type, courseName, desc)
 
     # Verify that the combobox values are valid
     if term in semester_box.values and dept in subject_box.values and type in course_box.values:
@@ -699,7 +705,8 @@ def fetch(term, dept ="", type = "", courseName = ""):
 
     else:   #TODO make this message better
         tkinter.messagebox.showerror(title="Search Box Error", message="INVALID SEARCH (make sure selected values are valid options)")
-        print("INVALID SEARCH (make sure selected values are valid options)")
+        # print("INVALID SEARCH (make sure selected values are valid options)")
+        logger.error("INVALID SEARCH (make sure selected values are valid options)")
     
 
 
@@ -707,16 +714,18 @@ def fetch(term, dept ="", type = "", courseName = ""):
 
 def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
     global loadData
-    print("Finding courses...")
+    # print("Finding courses...")
 
      #TODO make an actual element for searching
     text_tmp = Label(result_courses_pane.interior, text = "Searching for results...", font = ("helvetica", 20)).pack()
 
-    print(term, dept, type, courseName, desc)
+    # print(term, dept, type, courseName, desc)
+    logger.info("Search query: %s, %s, %s, %s, %s",term, dept, type, courseName, desc)
 
     # Connect to the page to clear past searches
     browser.get('https://cdcs.ur.rochester.edu/')
-    print(time.strftime("%H:%M:%S",  time.localtime()), "    -Webpage connected")
+    # print(time.strftime("%H:%M:%S",  time.localtime()), "    -Webpage connected")
+    logger.info("Connected to CDCS Webpage")
 
     # Enter info into the form
     Select(browser.find_element(By.ID, 'ddlTerm')).select_by_visible_text(term)    # REQUIRED
@@ -732,7 +741,8 @@ def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
     # Submit the form
     browser.find_element(By.ID, 'btnSearchTop').click()
     start_time = time.localtime()
-    print(time.strftime("%H:%M:%S", start_time), "    -Form submitted")
+    # print(time.strftime("%H:%M:%S", start_time), "    -Form submitted")
+    logger.info("Form submitted to CDCS")
     
     # Recieve HTML info about the classes
     tables = browser.find_elements(By.XPATH, '//table[contains(@cellpadding, "3")]')
@@ -741,17 +751,19 @@ def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
     end_time = time.localtime()
     diff = (time.mktime(end_time) - time.mktime(start_time)) 
     if(diff >= sleepTime and len(tables) == 0):     # Check for timeout issues
-        print(time.strftime("%H:%M:%S",end_time), " -Timeout error occured")
+        logger.error("Timeout error occured")
         tkinter.messagebox.showerror(title="Search TImeout Error", message="Timeout Error Occured. Please make sure you are connected to a stable internet connection, or increase the timeout duration.")
         #TODO add a graphical element if a timeout connection occured
         return None
 
 
     elif len(tables) == 0:          # Return nothing if no results were found TODO Change this for the current program
+        logger.warning("No results found")
         return None
         
     else:   # Parse and display the gathered data
-        print(time.strftime("%H:%M:%S",end_time), "    -Results found (", str(len(tables)) , ")")
+        # print(time.strftime("%H:%M:%S",end_time), "    -Results found (", str(len(tables)) , ")")
+        logger.info("%d results found ", len(tables))
     
         loadData.clear()
 
@@ -855,8 +867,9 @@ def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
                 loadData.append(dict)
 
         except Exception as e: 
-            print("Error reading / parsing data")
-            print(e)
+            # print("Error reading / parsing data")
+            logger.error("Error reading / parsing data")
+            logger.error("%s", e)
             
         browser.implicitly_wait(sleepTime)
         return 0
@@ -865,18 +878,25 @@ def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
 
 def save_and_quit():
     global browser
-    print("Closing...")
-    out = open("saved_classes.json", "w")
-    json_out_data = json.dumps(current_classes)
-    out.write(json_out_data)
-    out.close()
-    browser.close()
+    # print("Closing...")
+    logger.info("Closing Program and saving chosen classes")
+    try:
+        out = open("saved_classes.json", "w")
+        json_out_data = json.dumps(current_classes)
+        out.write(json_out_data)
+        out.close()
+        
+    except:
+        logger.error("Unable to save classes")
 
+    browser.close()
     root.destroy()
 
 #============================================ Set up the Tkinter window ============================================#
 # Set up the root window for the app
-print(time.strftime("%H:%M:%S", time.localtime()), "    -Creating GUI")
+# print(time.strftime("%H:%M:%S", time.localtime()), "    -Creating GUI")
+logger.info("Creating GUI")
+
 
 root = Tk()
 root.title('UR Ready')  #Title for window
@@ -932,14 +952,26 @@ btn_remove_g = PhotoImage(
     file=relative_to_assets("remove_g.png"))
 
 
-search_img  = PhotoImage(
-    file=relative_to_assets("search_down.png"))
-results_img  = PhotoImage(
+search_up  = PhotoImage(
+    file=relative_to_assets("search_up.png"))
+res_up  = PhotoImage(
     file=relative_to_assets("res_up.png"))
-schedule_img  = PhotoImage(
+sch_up = PhotoImage(
     file=relative_to_assets("sch_up.png"))
-requirements_img  = PhotoImage(
+req_up  = PhotoImage(
     file=relative_to_assets("req_up.png"))
+
+search_down  = PhotoImage(
+    file=relative_to_assets("search_down.png"))
+res_down  = PhotoImage(
+    file=relative_to_assets("res_down.png"))
+sch_down = PhotoImage(
+    file=relative_to_assets("sch_down.png"))
+req_down  = PhotoImage(
+    file=relative_to_assets("req_down.png"))
+
+tab_body  = PhotoImage(
+    file=relative_to_assets("folder_body.png"))
 
 #Photo images for search widget
 bg_img = PhotoImage(file=relative_to_assets("search_bg.png"))
@@ -963,60 +995,100 @@ calander_frame.pack(side=RIGHT, anchor = "n", pady = 10, padx = 10)
 draw_cal()
 draw_header()
 
+
+
+
 #===================== Set Up Tabview =====================#
 
-def change_tabview_btn(event):
-#set all tabs to bg, find new tab and set it to light color with current
+class CustomTabview(Frame):
+    def __init__(self, parent, *args, **kw):
+        Frame.__init__(self, parent, *args, **kw)
+        self.frame_list = []
+        self.btn_list = []
+        self.btn_img_list = []
 
-    match (event.widget.index("current")):
-        case 0:
-            pass
-        case 1:
-            pass
-        case 2:
-            pass
-        case 3:
-            pass
+        self.current_frame = None
+        self.tab_frame = Frame(self)
+        self.content_frame = Frame(self)
 
-
-tabposition = ttk.Style()
-tabposition.configure('TNotebook', sticky='w', tabposition='nw',borderwidth=0,  highlightthickness = 0)
-tabposition.layout("Tab",
-[('Notebook.tab', {'sticky': 'nswe', 'children':
-    [('Notebook.padding', {'side': 'top', 'sticky': 'nswe', 'children':
-            [('Notebook.label', {'side': 'top', 'sticky': ''})],})],})])
-
-s = ttk.Style()
-# Create style used by default for all Frames
-s.configure('TFrame', background='#FFECDC')
-
-tabview = ttk.Notebook(root,  height = 600, width = 400)
-search = ttk.Frame(tabview)
-results = ttk.Frame(tabview)
-classes = ttk.Frame(tabview)
-requirements = ttk.Frame(tabview)
-
-tabview.add(search, image=search_img, underline=0, padding=0)
-tabview.add(results, image = results_img)
-tabview.add(classes, image=schedule_img)
-tabview.add(requirements, image = requirements_img)
-
-tabview.pack(expand = 1, fill ="both")
+        self.tab_frame.pack(side = TOP, anchor="nw", pady = 0)
+        self.content_frame.pack_propagate(0)
+        self.content_frame.pack(side=TOP, fill="both", expand = True,pady = 0)
 
 
-tabview.bind("<<NotebookTabChanged>>", change_tabview_btn)
+    def switch_tab(self, i):
+        for j, btn in enumerate(self.btn_list):
+            if j == i:
+                self.btn_list[j].config(image= self.btn_img_list[j][1])
+            else:
+                self.btn_list[j].config(image= self.btn_img_list[j][0])
+
+        if not self.current_frame is self.frame_list[i]:
+            self.current_frame.grid_forget()
+            self.current_frame = self.frame_list[i]
+            self.frame_list[i].grid(row=1,column=1)
+
+
+    def add_tab(self, id, btn_imgs = None, **kwargs):
+        frame = Canvas(self.content_frame, name=id,  **kwargs)
+        frame.create_image(0,0, image=tab_body, anchor="nw")
+    
+        i = len(self.frame_list)     # use  and index by tab
+        tab = Button(self.tab_frame, text=id, borderwidth=0, highlightthickness=0, command=lambda: self.switch_tab(i))
+        tab.pack(side=LEFT, padx=(0,5))
+
+        self.frame_list.append(frame)
+        self.btn_list.append(tab)
+        self.btn_img_list.append(btn_imgs)
+
+        if btn_imgs != None:
+            tab.config(image=btn_imgs[0])
+
+        if len(self.frame_list) == 1:   
+            self.current_frame = frame
+            if btn_imgs != None:
+                tab.config(image = btn_imgs[1])
+            frame.grid(row=1,column=1)
+
+    def add_element(self, elem, frame_name, x, y, anchor = "nw"):
+        elem.place(in_= self.get(frame_name), x = x, y = y, anchor = "nw")
+
+
+    def get(self, id):
+        for f in self.frame_list:
+            if f.winfo_name() == id:
+                return f
+        return None
+
+        
+
+
+
+
+notebook = CustomTabview(root, height = 600, width = 400)
+notebook.add_tab("search", width = 1000,height = 1000, btn_imgs=(search_up,search_down))
+notebook.add_tab("results",width = 1000,height = 1000, btn_imgs=(res_up, res_down))
+notebook.add_tab("schedual",width = 1000,height = 1000,btn_imgs=(sch_up, sch_down))
+notebook.add_tab("requirements",width = 1000,height = 1000, btn_imgs=(req_up, req_down))
+
+
+notebook.pack()
+
+
 
 #===================== Search Component =====================#
 
-print(time.strftime("%H:%M:%S", time.localtime()), "    -Getting Combobox Values")
-browser.get('https://cdcs.ur.rochester.edu/')
-xmlSrc = lxml.html.fromstring(browser.page_source)
+# print(time.strftime("%H:%M:%S", time.localtime()), "    -Getting Combobox Values")
+logger.info("Getting Combobox Values")
+
+try:
+    browser.get('https://cdcs.ur.rochester.edu/')
+    xmlSrc = lxml.html.fromstring(browser.page_source)
+except:
+    logger.critical("Unable to load website resources")
 
 
-searchPane = Frame(search, width = 200, height = 100, relief=GROOVE, bd = 0)
-
-
-search_canvas = Canvas(searchPane,bg = "#FFECDC",height = 400,width = 700,bd = 0,highlightthickness = 0,relief = "ridge")
+search_canvas = notebook.get("search") #Canvas(searchPane,bg = "#FFECDC",height = 400,width = 700,bd = 0,highlightthickness = 0,relief = "ridge")
 
 
 search_canvas.create_image(102,59, anchor = "nw", image= bg_img)
@@ -1027,19 +1099,21 @@ search_canvas.create_image(102,59, anchor = "nw", image= bg_img)
 # 1st long bar
 # canvas.create_image(123,85, anchor = "nw", image= search_long_img)
 
-semester_box = CustomDropDown(searchPane,text = "Semester (REQUIRED):", values = (xmlSrc.xpath('//*[@id="ddlTerm"]/option/text()')), width = 286, img = search_long_img, text_width = 25)
+semester_box = CustomDropDown(search_canvas,text = "Semester (REQUIRED):", values = (xmlSrc.xpath('//*[@id="ddlTerm"]/option/text()')), width = 286, img = search_long_img, text_width = 25)
 semester_box.place(in_=search_canvas, x=123,y=85)
+
 try:
     semester_box.values.remove("SELECT A TERM")
 except:
-    print("SELECT A TERM text no longer on webpage")
+    logger.warning("SELECT A TERM text no longer on webpage")
+
 
 # 2nd long bar
 # canvas.create_image(123,161, anchor = "nw", image= search_long_img)
 vals = (xmlSrc.xpath('//*[@id="ddlDept"]/option/text()'))
 vals.insert(0,"")
 
-subject_box = CustomDropDown(searchPane,text = "Subject:", values = vals, width = 286, img = search_long_img, text_width = 25)
+subject_box = CustomDropDown(search_canvas,text = "Subject:", values = vals, width = 286, img = search_long_img, text_width = 25)
 subject_box.place(in_=search_canvas, x=123,y=161)
 
 # 3rd long bar
@@ -1047,7 +1121,7 @@ subject_box.place(in_=search_canvas, x=123,y=161)
 vals =  (xmlSrc.xpath('//*[@id="ddlTypes"]/option/text()'))
 vals.insert(0,"")
 
-course_box = CustomDropDown(searchPane,text = "Course Type:", values = vals, width = 286, img = search_long_img, text_width = 25)
+course_box = CustomDropDown(search_canvas,text = "Course Type:", values = vals, width = 286, img = search_long_img, text_width = 25)
 course_box.place(in_=search_canvas, x=123,y=237)
 
 
@@ -1055,18 +1129,18 @@ course_box.place(in_=search_canvas, x=123,y=237)
 
 # 1st short bar
 # canvas.create_image(429,85, anchor = "nw", image= search_short_img)
-id_box = CustomDropDown(searchPane,text = "Course ID:", values = None, width = 146, img = search_short_img, text_width = 12, list_width=21)
+id_box = CustomDropDown(search_canvas,text = "Course ID:", values = None, width = 146, img = search_short_img, text_width = 12, list_width=21)
 id_box.place(in_=search_canvas, x=429,y=85)
 
 # 2nd short bar
 # search_canvas.create_image(429,161, anchor = "nw", image= search_short_img)
-keywords_box = CustomDropDown(searchPane,text = "Keywords:", values = None, width = 146, img = search_short_img, text_width = 12, list_width=21)
+keywords_box = CustomDropDown(search_canvas,text = "Keywords:", values = None, width = 146, img = search_short_img, text_width = 12, list_width=21)
 keywords_box.place(in_=search_canvas, x=429,y=161)
 
 # Checkbutton for hiding unavailable classes
 
 hide_unavailable_var = tkinter.IntVar()
-check_btn = Checkbutton(searchPane,bd=0,highlightthickness=0, background="#7268A6", activebackground="#7268A6",variable= hide_unavailable_var)
+check_btn = Checkbutton(search_canvas,bd=0,highlightthickness=0, background="#7268A6", activebackground="#7268A6",variable= hide_unavailable_var)
 check_btn.place(in_=search_canvas, x = 361,y =310)
 search_canvas.create_text(386.0,311.0,anchor="nw",text="Hide unavailable classes",fill="#FFFFFF",font=("IstokWeb Bold", 16 * -1))
 
@@ -1086,110 +1160,62 @@ id_box.lift(aboveThis=keywords_box)
 
 
 
-search_canvas.pack()
+
 
 
 # Search button for submitting form
-search_btn = Button(image=search_btn_img,borderwidth=0,highlightthickness=0,command=lambda :fetch(semester_box.get(), subject_box.get(), course_box.get()),relief="flat")
+search_btn = Button(search_canvas, image=search_btn_img,borderwidth=0,highlightthickness=0,command=lambda :fetch(semester_box.get(), subject_box.get(), course_box.get()),relief="flat")
 search_btn.place(in_=search_canvas, x=447.0,y=234.0,width=103.0,height=60.0)
 
 
 
 
 
-# styleT = ttk.Style()
-# styleT.configure('TCombobox', selectbackground=None, selectforeground=None)
-
-# searchLeft = Frame(searchPane)
-# searchRight = Frame(searchPane)
-
-# print(time.strftime("%H:%M:%S", time.localtime()), "    -Getting Combobox Values")
-# browser.get('https://cdcs.ur.rochester.edu/')
-# xmlSrc = lxml.html.fromstring(browser.page_source)
-
-
-# # Create widgets for the search form
-# yearTitle = Label(searchLeft, text="Term (REQUIRED)", fg = "red").pack(anchor='w')
-# yearSelect = CustomCombobox(searchLeft,width = 32,values = (xmlSrc.xpath('//*[@id="ddlTerm"]/option/text()')),startingText="Semester (REQ) :")
-
-
-# yearSelect.bind("<<ComboboxSelected>>",lambda e: searchPane.focus())
-# yearSelect.pack()
-
-# subjectTitle = Label(searchLeft, text="Subject:").pack(anchor='w')
-# vals = (xmlSrc.xpath('//*[@id="ddlDept"]/option/text()'))
-# vals.insert(0,"")
-# subjectSelect = CustomCombobox(searchLeft, width = 32,values =vals,startingText="Subject :")     # 
-# subjectSelect.bind("<<ComboboxSelected>>",lambda e: searchPane.focus())
-# subjectSelect.pack()
-
-# typeTitle = Label(searchLeft, text="Course Type:").pack(anchor='w')
-# vals =  (xmlSrc.xpath('//*[@id="ddlTypes"]/option/text()'))
-# vals.insert(0,"")
-# typeSelect = CustomCombobox(searchLeft,width = 32,  values = vals,startingText="Type :")
-# typeSelect.bind("<<ComboboxSelected>>",lambda e: searchPane.focus())
-# typeSelect.pack()
-
-# hide_unavailable_var = tkinter.IntVar()
-# unavailable_classes_check = Checkbutton(searchLeft, variable= hide_unavailable_var,  text = "Hide Unavailable Classes")
-# unavailable_classes_check.bind("<<ComboboxSelected>>",lambda e: searchPane.focus())
-# unavailable_classes_check.pack()
-
-
-
-# courseTitle = Label(searchRight, text="Course ID:").pack(anchor='w')
-# courseSelect = Text(searchRight, height = 1, width = 15, relief=SOLID, bd = 1)
-# courseSelect.pack()
-
-# titleTitle = Label(searchRight, text="Course Keywords:").pack(anchor='w')
-# titleSelect = Text(searchRight, height = 1, width = 15, relief=SOLID, bd = 1)
-# titleSelect.pack(pady = (0, 11), anchor='n')
-
-# search_btn = Button(searchRight, text = "SUBMIT", command=lambda :fetch(yearSelect.get(), subjectSelect.get(), typeSelect.get())).pack()
-
-
-
-# searchLeft.pack(side= LEFT, padx=(22,6), pady = 4)
-# searchRight.pack(side= RIGHT, padx=(6,22))
-searchPane.pack(anchor="nw", padx =10)
-
-
+# notebook.add_element(searchPane, "search",0,0)
 
 #===================== Results Component =====================#
 
+results = notebook.get("results")
 
 
-scrolingPane = Frame(results, bd=0, width = 400)
 
-scroll_next = Button(scrolingPane, text="Next", command=next_page, anchor="ne",).pack(side = RIGHT)
-scroll_prev = Button(scrolingPane, text="Prev", command=prev_page, anchor="nw").pack(side = LEFT)
+scroll_next = Button(results, text="Next", command=next_page, anchor="ne",)
+notebook.add_element(scroll_next, "results", 680, 20)
 
-scroll_text = Label(scrolingPane, text="Showing " + str(indxS) + "-" + str(indxE) + " of " + str(numResults), font=("Helvetica 10 bold"))
-scroll_text.pack(side = TOP, padx = 100)
 
-scrolingPane.pack()
+scroll_prev = Button(results, text="Prev", command=prev_page, anchor="nw")
+notebook.add_element(scroll_prev, "results", 20, 20)
+
+scroll_text = Label(results, text="Showing " + str(indxS) + "-" + str(indxE) + " of " + str(numResults), font=("Helvetica 10 bold"))
+notebook.add_element(scroll_text, "results", 340, 20, anchor="n")
+
 
 result_courses_pane = VerticalScrolledFrame(results)
-result_courses_pane.pack()
+
+
+notebook.add_element(result_courses_pane, "results", 20, 50, anchor="nw")
+
+
 
 
 
 #===================== Current Courses Component =====================#
-
+classes = notebook.get("schedual")
 cur_courses_pane = VerticalScrolledFrame(classes)
-cur_courses_pane.pack()
+notebook.add_element(cur_courses_pane, "schedual", 20, 50, anchor="nw")
 
 # Load all of the current saved clsses into the scroll pane
 for entry in range(0,len(current_classes)):
     if current_classes[entry]["Showing"]:
         ModernCourseElement(cur_courses_pane.interior,current_classes[entry],mode=FALSE, type ="b")
     else:
-        print("not showing") #FIXME make sure classes that start as hidden are added as hidden
+        #FIXME make sure classes that start as hidden are added as hidden
         ModernCourseElement(cur_courses_pane.interior,current_classes[entry],mode=FALSE, type = "b")
 
 
 
-print(time.strftime("%H:%M:%S", time.localtime()), "    -Starting Program")
+# print(time.strftime("%H:%M:%S", time.localtime()), "    -Starting Program")
+logger.info("Starting GUI Program")
 root.mainloop()
 
 
