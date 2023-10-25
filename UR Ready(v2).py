@@ -118,8 +118,8 @@ class CustomDropDown(Frame):
                 self.list.insert(self.list.size(), data[i])
             
 
-        if len(data) < 11:
-            self.list.config(height= len(data))
+            if len(data) < 11:
+                self.list.config(height= len(data))
             
 
 
@@ -150,7 +150,7 @@ def update_overlap():       #TODO update so that this also controls the colors o
     for course in current_classes:
         if course["Showing"]:
             try:
-                cur_courses_pane.interior.nametowidget(course["Title"].lower())._change_mode("normal")
+                cur_courses_pane.interior.nametowidget(course["Title"].lower())._change_mode("normal")  #FIXME update for modern course frame
             except:
                 pass
 
@@ -213,7 +213,7 @@ class ModernCourseElement(ttk.Frame):
         if mode:  #Mode represents if its a search element or a result element
             self.btn_add = Button(self.canvas,image=self.add_img,borderwidth=0,highlightthickness=0,command = lambda: self.add_course_to_schedule(),relief="flat")
             self.btn_add.place(in_=self.canvas,x=507.0,y=7.0,width=52.0,height=21.0) #width and height are 2 less than they should be: hack to fix white border on click #FIXME
-        else:   #TODO make these rely on local values, not the global ones
+        else:   
             self.btn_remove = Button(self.canvas,image=self.remove_img,borderwidth=0,highlightthickness=0,command = lambda: self.remove_course_from_schedule(),relief="flat")
             self.btn_remove.place(in_=self.canvas,x=507.0,y=7.0,width=62.0,height=21.0) #width and height are 2 less than they should be: hack to fix white border on click #FIXME
 
@@ -703,7 +703,7 @@ def fetch(term, dept ="", type = "", courseName = ""):
         thread.start()
         root.after(200, check_if_ready, thread)
 
-    else:   #TODO make this message better
+    else:   
         tkinter.messagebox.showerror(title="Search Box Error", message="INVALID SEARCH (make sure selected values are valid options)")
         # print("INVALID SEARCH (make sure selected values are valid options)")
         logger.error("INVALID SEARCH (make sure selected values are valid options)")
@@ -753,11 +753,10 @@ def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
     if(diff >= sleepTime and len(tables) == 0):     # Check for timeout issues
         logger.error("Timeout error occured")
         tkinter.messagebox.showerror(title="Search TImeout Error", message="Timeout Error Occured. Please make sure you are connected to a stable internet connection, or increase the timeout duration.")
-        #TODO add a graphical element if a timeout connection occured
         return None
 
 
-    elif len(tables) == 0:          # Return nothing if no results were found TODO Change this for the current program
+    elif len(tables) == 0:          # Return nothing if no results were found TODO add graphical element
         logger.warning("No results found")
         return None
         
@@ -848,7 +847,7 @@ def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
                 except:
                     pass
 
-                try:    #TODO separate restrictions from this section
+                try:    #TODO separate restrictions from this section(idk if I still need this as the text length currently captures restrictions)
 
                     for children in table.xpath(".//span[contains(@id,'lblDesc')]"):
                      for x in children.itertext():
@@ -1209,8 +1208,11 @@ for entry in range(0,len(current_classes)):
     if current_classes[entry]["Showing"]:
         ModernCourseElement(cur_courses_pane.interior,current_classes[entry],mode=FALSE, type ="b")
     else:
-        #FIXME make sure classes that start as hidden are added as hidden
-        ModernCourseElement(cur_courses_pane.interior,current_classes[entry],mode=FALSE, type = "b")
+        x = ModernCourseElement(cur_courses_pane.interior,current_classes[entry],mode=FALSE, type = "b")
+        #FIXME make sure classes that start as hidden are added as hidden, quick hack but maybe make method to set for showing?
+
+        x.toggle_show()
+        x.toggle_show()
 
 
 
