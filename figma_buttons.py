@@ -94,6 +94,12 @@ class ModernCourseElement(ttk.Frame):
         self.mode = mode
         self.showing = True
 
+
+        self.check_list = []
+
+
+        self.num_sections = 0
+
         if type == "b":
             self.add_img = btn_b_add
             self.info_img = btn_b_info
@@ -121,6 +127,9 @@ class ModernCourseElement(ttk.Frame):
         self.canvas.create_rectangle(0,0,681.0,54,fill="#EDEDED",outline="")
         self.draw_banner()
 
+        self.section_list = Frame(self.canvas, bg = self.bg_color, pady=0, borderwidth=2,bd = 2)
+
+
                 
         self.btn_info = Button(self.canvas,image=self.info_img,   borderwidth=0,highlightthickness=0,command = lambda *args: self.toggle_dropdown(),relief="flat")
         self.btn_info.place(in_=self.canvas,x=579.0,y=7.0,width=95.0,height=21.0)#width and height are 2 less than they should be: hack to fix white border on click #FIXME
@@ -133,38 +142,88 @@ class ModernCourseElement(ttk.Frame):
             self.btn_remove.place(in_=self.canvas,x=507.0,y=7.0,width=62.0,height=21.0) #width and height are 2 less than they should be: hack to fix white border on click #FIXME
 
             self.btn_show = Button(self.canvas,image=self.show_img,borderwidth=0,highlightthickness=0,command = lambda: self.toggle_show(),relief="flat")
-            self.btn_show.place(in_=self.canvas,x=600.0,
-                y=34.0,
-                width=52.0,
-                height=14.0) #width and height are 2 less than they should be: hack to fix white border on click #FIXME
+            self.btn_show.place(in_=self.canvas,x=600.0,y=34.0,width=52.0,height=14.0) #width and height are 2 less than they should be: hack to fix white border on click #FIXME
+
+
+           
+            
+
+
+        
+
+
+            
 
 
         self.canvas.pack(pady = (10,0))
         self.pack(anchor="w")
 
+    def add_section(self, title = "", course_type = "",  instructor = "", days = "", time = "", room = "", enrolled = "", cap = ""):
+
+                
+                color = "#dbdbdb"
+                if self.num_sections % 2:
+                    color = "#ffffff"
+
+                section_frame = Canvas(self.section_list, width = 670, height = 24, bg=color, bd=0, highlightthickness=0)
+
+                #FIXME maybe make frames for each line, but that would drastically increase the complexity
+                # print(f'{title:<14}    {course_type:<14}    {instructor:<20}    {days:<20}    {time:<12}    {room:<12}')
+                l = Label(section_frame, text = f'{title:<14}{course_type:<20}{instructor:<30}{days:<20}{time:<12}{room:<20}{enrolled:<20}', bg=color,font=("IstokWeb Bold", 12 * -1, "bold"))
+
+                section_frame.create_text(5,5, text=title, anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
+                section_frame.create_text(70,5, text=course_type, anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
+                section_frame.create_text(140,5, text=instructor, anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
+                section_frame.create_text(255,5, text=days + " : " + time, anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
+                section_frame.create_text(420,5, text=room, anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
+                section_frame.create_text(550,5, text= str(enrolled) + "/" + str(cap) +" Enrolled", anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
+                # section_frame.create_text(5,5, text=title, anchor="nw",font=("IstokWeb Bold", 12 * -1, "bold"))
+
+
+                self.check_list.append(IntVar())
+                check = Checkbutton(section_frame, text = "", variable= self.check_list[len(self.check_list) - 1], bg=color, pady=0)
+                check.bind('<ButtonRelease>', self.print_check_values)
+                # check.pack(side=RIGHT)
+                check.place(in_=section_frame, x=640, y = 0)
+
+                self.num_sections+= 1
+                section_frame.pack(anchor="nw")
+
+    def print_check_values(self, event):  #FIXME this is sending values from before the current value is upddated
+        for i in self.check_list:
+            print(i.get())
+
+
     def toggle_dropdown(self):
         if self.canvas.winfo_height() <= 60:
             self.make_text(self.dict)
+            # self.section_list.pack()
+            
         else:
             self.canvas.config(height=54)
             self.canvas.create_rectangle(0,0,681.0,54,fill="#EDEDED",outline="")
             self.draw_banner()
+            # self.section_list.forget()
            
         
     def draw_banner(self):
-        # Create banner
+       # Create banner
         self.canvas.create_image(0,0, anchor=NW, image=self.banner_img)
 
         # Course Number
-        self.canvas.create_text(14.0,9.0,anchor="nw",text=" ".join(self.dict["Title"].split(" ")[0:2]),fill="#FFFFFF",font=("IstokWeb Bold", 16 * -1, "bold"))
+        #remove section 
+        title = self.dict["Title"].split(" ")
+        title[1] = title[1][:3]
+
+        self.canvas.create_text(14.0,9.0,anchor="nw",text=title,fill="#FFFFFF",font=("IstokWeb Bold", 16 * -1, "bold"))
 
         days = []
         for d in self.dict["Days"]:
             days.append(day_lookup[d])
 
-        self.canvas.create_text(170.0,9.0,anchor="nw",text=("/".join(days) + ": " + time_to_str(self.dict["Start"]) + " - " + time_to_str(self.dict["End"])),fill="#FFFFFF",font=("IstokWeb Bold", 14 * -1, "bold"))
+        self.canvas.create_text(100.0,30.0,anchor="nw",text=("/".join(days) + ": " + time_to_str(self.dict["Start"]) + " - " + time_to_str(self.dict["End"])),fill="#FFFFFF",font=("IstokWeb Bold", 12 * -1, "bold"))
 
-        self.canvas.create_text(20.0,30.0,anchor="nw",text=self.dict["Credit"] + " credits",fill="#FFFFFF",font=("IstokWeb Bold", 10 * -1, "bold"))
+        self.canvas.create_text(20.0,30.0,anchor="nw",text=self.dict["Credit"] + " credits",fill="#FFFFFF",font=("IstokWeb Bold", 12 * -1, "bold"))
 
         if self.dict["Open"]:
             self.canvas.create_text(454.0,9.0,anchor="nw",text="Open",fill="#FFFFFF",font=("IstokWeb Bold", 14 * -1, "bold"))
@@ -172,6 +231,8 @@ class ModernCourseElement(ttk.Frame):
             self.canvas.create_text(454.0,9.0,anchor="nw",text="Closed",fill="#FFFFFF",font=("IstokWeb Bold", 14 * -1, "bold"))
         #Split this into 2 that sit on top of each other?
         # canvas.create_text(170.0,9.0,anchor="nw",text="Monday/Wednesday: 615pm - 730 pm",fill="#FFFFFF",font=("IstokWeb Bold", 14 * -1))
+
+        
 
 
     def make_text(self, dict):     
@@ -193,37 +254,44 @@ class ModernCourseElement(ttk.Frame):
                 line = t[i]
         the_text += line
 
-
+        
+        # self.section_list.place(in_=self.canvas, x=0,y=0)
+        
         #This is the number of lines the text will be
         num_lines = the_text.count("\n")
 
         # Dynamically size canvas and bg to the text length
-        self.canvas.config(height=140 + 12 * max(0,num_lines-3) + 72)
-        self.canvas.create_rectangle(0,0,681.0,140 + 12 * max(0,num_lines-3) + 72,fill="#EDEDED",outline="")
-        self.canvas.create_image(0,140 + 12 * max(0,num_lines-3), anchor=NW, image=self.body_img)
-        self.canvas.create_rectangle(0.0,20.0,681.0,140 + 12 * max(0,num_lines-3),fill=self.bg_color,outline="")
+        self.canvas.config(height=140 + 12 * max(0,num_lines-3) + 72 + 25 * self.num_sections)
+        self.canvas.create_rectangle(0,0,681.0,140 + 12 * max(0,num_lines-3) + 72 + 25 * self.num_sections,fill="#EDEDED",outline="")
+        self.canvas.create_image(0,140 + 12 * max(0,num_lines-3)  + 25 * self.num_sections, anchor=NW, image=self.body_img)
+        self.canvas.create_rectangle(0.0,20.0,681.0,140 + 12 * max(0,num_lines-3)  + 25 * self.num_sections,fill=self.bg_color,outline="")
 
         self.draw_banner()
 
         # Title & Enrolled
         self.canvas.create_text(7.0,66.0,anchor="nw",text=self.dict["Title"],fill="#000000",font=("IstokWeb", 14 * -1, "bold"))
-        self.canvas.create_text(573.0,66.0,anchor="nw",text= dict["Enrolled"] + "/" + dict["Capacity"] +" Enrolled",fill="#000000",font=("IstokWeb Bold", 12 * -1, "bold"))
+        # self.canvas.create_text(573.0,66.0,anchor="nw",text= dict["Enrolled"] + "/" + dict["Capacity"] +" Enrolled",fill="#000000",font=("IstokWeb Bold", 12 * -1, "bold"))
         
         # Semesters offered
         self.canvas.create_text(7.0,89.0,anchor="nw",text="Offered: ",fill="#000000",font=("IstokWeb Bold", 12 * -1,'bold'))
         self.canvas.create_text(57.0,89.0,anchor="nw",text=(", ".join(self.dict["Offered"])),fill="#000000",font=("IstokWeb Bold", 12 * -1))
 
-        # Instructor           
-        self.canvas.create_text(7.0,106.0,anchor="nw",text="Instructor: ",fill="#000000",font=("IstokWeb Bold", 12 * -1, "bold"))
-        self.canvas.create_text(70.0,106.0,anchor="nw",text=self.dict["Instructor"],fill="#000000",font=("IstokWeb Bold", 12 * -1))
 
-        # Room
-        self.canvas.create_text(7.0,123.0,anchor="nw",text="Room: ",fill="#000000",font=("IstokWeb Bold", 12 * -1,'bold'))
-        self.canvas.create_text(47.0,123.0,anchor="nw",text=self.dict["Room"],fill="#000000",font=("IstokWeb Bold", 12 * -1))
+
+        
+        # Instructor           
+        self.canvas.create_text(7.0,106.0,anchor="nw",text="Sections: ",fill="#000000",font=("IstokWeb Bold", 12 * -1, "bold"))
+        # self.canvas.create_text(70.0,106.0,anchor="nw",text=self.dict["Instructor"],fill="#000000",font=("IstokWeb Bold", 12 * -1))
+
+        self.canvas.create_window(7.0,125.0, window=self.section_list, width = 670, anchor="nw")    #FIXME: fix things below the added courses
+
+        # # Room
+        # self.canvas.create_text(7.0,123.0,anchor="nw",text="Room: ",fill="#000000",font=("IstokWeb Bold", 12 * -1,'bold'))
+        # self.canvas.create_text(47.0,123.0,anchor="nw",text=self.dict["Room"],fill="#000000",font=("IstokWeb Bold", 12 * -1))
 
         # Class description
-        self.canvas.create_text(7.0,140.0,anchor="nw",text="Description: ",fill="#000000",font=("IstokWeb Bold", 12 * -1,'bold'))
-        self.canvas.create_text(7.0,140.0,anchor="nw",text=the_text,fill="#000000",font=("IstokWeb Bold", 12 * -1))
+        self.canvas.create_text(7.0,125.0 + 25 * self.num_sections,anchor="nw",text="Description: ",fill="#000000",font=("IstokWeb Bold", 12 * -1,'bold'))
+        self.canvas.create_text(7.0,125.0 + 25 * self.num_sections,anchor="nw",text=the_text,fill="#000000",font=("IstokWeb Bold", 12 * -1))
 
 
     def toggle_show(self):
@@ -459,16 +527,54 @@ for entry in range(0,3):
 
     if current_classes[entry]["Open"]:
         if entry % 2 == 0:
-            ModernCourseElement(cur_courses_pane.interior, dict=current_classes[entry], type = "b")
+            x = ModernCourseElement(cur_courses_pane.interior, dict=current_classes[entry], type = "b")
+            x.add_section("CSC 121-1","lecture", "Jiebo Luo","Monday/Thursday","5:00-6:15","Hubble Auditorium 123", 10,40)
+            x.add_section("CSC 121-2","workshop","James Mac","Monday/Thursday","12:00-1:15","Hoyt 123", 0,123)
+            x.add_section("CSC 121-3","lecture","Lane Hemespaandra","Monday/Thursday","5:00-6:15","Hoyt 123", 110,120)
         else: 
             ModernCourseElement(cur_courses_pane.interior, dict=current_classes[entry], type = "o")
 
     else:
         ModernCourseElement(cur_courses_pane.interior, dict=current_classes[entry])
 
+# def print_check_values(event):  #FIXME this is sending values from before the current value is upddated
+    
+#     for i in check_list:
+#         print(i.get())
+
+c.pack()
+
+# check_list = []
+
+# section_list = Frame(root)
+
+# num_sections = 0
+# def add_section(title = "", course_type = "",  instructor = "", days = "", time = "", room = ""):
+#     global num_sections
+
+#     color = "#dbdbdb"
+#     if num_sections % 2:
+#         color = "#ffffff"
+
+#     #FIXME maybe make frames for each line, but that would drastically increase the complexity
+#     # print(f'{title:<14}    {course_type:<14}    {instructor:<20}    {days:<20}    {time:<12}    {room:<12}')
+#     Label(section_list, text = f'{title:<14}    {course_type:<14}    {instructor:<20}    {days:<20}    {time:<12}    {room:<20}', bg=color,font=("IstokWeb Bold", 14 * -1, "bold"), justify="left", anchor="w").grid(row=num_sections,column=0, sticky = "w")
+#     check_list.append(IntVar())
+#     check = Checkbutton(section_list, text = "", variable= check_list[len(check_list) - 1], bg=color)
+#     check.bind('<ButtonRelease>', print_check_values)
+#     check.grid(row = num_sections, column = 1)
+#     num_sections+= 1
 
 
-c.grid(row=0, column=0)
+# add_section("CSC 121-1","lecture", "James Mac","Monday/Thursday","5:00-6:15","Hoyt 123")
+# add_section("CSC 121-2","workshop","James Mac","Monday/Thursday","12:00-1:15","Hoyt 123")
+# add_section("CSC 121-3","lecture","Ryan Seacrest","Monday/Thursday","5:00-6:15","Hoyt 123")
+
+
+# section_list.pack()
+
+
+
 #cur_courses_pane.pack()
 
 

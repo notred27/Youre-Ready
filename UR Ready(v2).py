@@ -45,6 +45,15 @@ logger.addHandler(fh)
 
 # TODO for overlapping classes, add a yellow triangle in the bottom right with the number of classes in that space
 # For writing classes, workshops, recitations, add something to make it stand out on the calender
+
+# FIXME when scraping classes, remove "" for offered (when course isnt offered during a semester)
+
+# TODO make settings page to change timeout delay and other backend settigns, also add contact info for submitting bugs
+# change scraping so that same classes are grouped by section, and have dropdown show what sections there are and their days/times/instructors in a checklist
+# selecting any values in the checklist will show all checkewd values on the calender
+
+
+
 day_lookup = {"M":"Monday", "T":"Tuesday", "W":"Wednesday", "R":"Thursday", "F":"Friday", "S":"Saturday", "U":"Sunday"}
 
 
@@ -426,7 +435,6 @@ class VerticalScrolledFrame(ttk.Frame):
 theme = ["#E85A4F", "#E98074", "#8E8D8A", "#D8C3A5", "#EAE7DC"]
 
 loadData = []  # json.loads(open("scraped_classes.json", "r").read())
-# load_dropbox = json.loads(open("dropbox_info.json", "r").read())
 
 current_classes = json.loads(open("saved_classes.json", "r").read())
 
@@ -442,7 +450,6 @@ sleepTime = 20  #For timeout checks
 
 
 # Print initial time
-# print(time.strftime("%H:%M:%S", time.localtime()), "    -Searching for webpage")
 logger.info("Searching for webpage")
 
 # Set up browser connection     FIXME
@@ -521,7 +528,6 @@ def draw_cal(): #  Draw the background for the calender
     plan.create_line(0,0,14 +  400,0)
     for i, d in enumerate(day_lookup):
         x = 25 +  i * 80
-        # plan.create_line(x,20,x,580)
         plan.create_text(x + 40,10, text=day_lookup[d],  anchor = "center")
 
     hours = ["", "8", "9","10","11", "12", "1", "2", "3","4","5", "6", "7","8", ""]
@@ -654,11 +660,9 @@ def check_if_ready(thread):
         # not ready yet, run the check again soon
         root.after(200, check_if_ready, thread)
     else:
-        # print("Thread has terminated, updating page")
         logger.info("Scraping Thread has terminated, updating page")
 
         if hide_unavailable_var.get() == 1:
-            # print("Removing unavailable classes...")
             logger.info("Removing unavailable classes")
 
             for dict in loadData:
@@ -688,14 +692,7 @@ def fetch(term, dept ="", type = "", courseName = ""):
     courseName = id_box.get()
     desc = keywords_box.get()
 
-    # Make sure starting text isn't passed to the program
-    # if dept == subject_box.text:
-    #         dept = ""
-
-    # if type == course_box.text:
-    #     type = ""
-
-    # print(term, dept, type, courseName, desc)
+  
 
     # Verify that the combobox values are valid
     if term in semester_box.values and dept in subject_box.values and type in course_box.values:
@@ -705,7 +702,6 @@ def fetch(term, dept ="", type = "", courseName = ""):
 
     else:   
         tkinter.messagebox.showerror(title="Search Box Error", message="INVALID SEARCH (make sure selected values are valid options)")
-        # print("INVALID SEARCH (make sure selected values are valid options)")
         logger.error("INVALID SEARCH (make sure selected values are valid options)")
     
 
@@ -714,17 +710,14 @@ def fetch(term, dept ="", type = "", courseName = ""):
 
 def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
     global loadData
-    # print("Finding courses...")
 
      #TODO make an actual element for searching
     text_tmp = Label(result_courses_pane.interior, text = "Searching for results...", font = ("helvetica", 20)).pack()
 
-    # print(term, dept, type, courseName, desc)
     logger.info("Search query: %s, %s, %s, %s, %s",term, dept, type, courseName, desc)
 
     # Connect to the page to clear past searches
     browser.get('https://cdcs.ur.rochester.edu/')
-    # print(time.strftime("%H:%M:%S",  time.localtime()), "    -Webpage connected")
     logger.info("Connected to CDCS Webpage")
 
     # Enter info into the form
@@ -741,7 +734,6 @@ def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
     # Submit the form
     browser.find_element(By.ID, 'btnSearchTop').click()
     start_time = time.localtime()
-    # print(time.strftime("%H:%M:%S", start_time), "    -Form submitted")
     logger.info("Form submitted to CDCS")
     
     # Recieve HTML info about the classes
@@ -761,7 +753,6 @@ def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
         return None
         
     else:   # Parse and display the gathered data
-        # print(time.strftime("%H:%M:%S",end_time), "    -Results found (", str(len(tables)) , ")")
         logger.info("%d results found ", len(tables))
     
         loadData.clear()
@@ -771,7 +762,7 @@ def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
 
             root = lxml.html.fromstring(browser.page_source)
             
-            for table in root.xpath('//table[contains(@cellpadding, "3")]'):
+            for table in root.xpath('//table[contains(@cellpadding, "3")]'): #FIXME make this parsing better
                 # tableID = "/html/body/form/div[3]/table[1]/tbody/tr[2]/td[2]/div/table/tbody/tr/td[3]/table[" + str(i) + "]/tbody/"
                 # for x in range(1, 10,2 ): #len(tables)
                 dict = {"Title": "",
@@ -866,18 +857,16 @@ def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
                 loadData.append(dict)
 
         except Exception as e: 
-            # print("Error reading / parsing data")
             logger.error("Error reading / parsing data")
             logger.error("%s", e)
             
         browser.implicitly_wait(sleepTime)
-        return 0
+        return 0    #TODO fix this return?
 
 
 
 def save_and_quit():
     global browser
-    # print("Closing...")
     logger.info("Closing Program and saving chosen classes")
     try:
         out = open("saved_classes.json", "w")
@@ -893,7 +882,6 @@ def save_and_quit():
 
 #============================================ Set up the Tkinter window ============================================#
 # Set up the root window for the app
-# print(time.strftime("%H:%M:%S", time.localtime()), "    -Creating GUI")
 logger.info("Creating GUI")
 
 
@@ -901,7 +889,6 @@ root = Tk()
 root.title('UR Ready')  #Title for window
 root.geometry("1200x600")
 root.option_add("*Font", ("Adobe Garamond Pro Bold", 10))
-# root.configure(background=theme[0])
 
 root.protocol("WM_DELETE_WINDOW", save_and_quit)
 
@@ -1077,7 +1064,6 @@ notebook.pack()
 
 #===================== Search Component =====================#
 
-# print(time.strftime("%H:%M:%S", time.localtime()), "    -Getting Combobox Values")
 logger.info("Getting Combobox Values")
 
 try:
@@ -1087,7 +1073,7 @@ except:
     logger.critical("Unable to load website resources")
 
 
-search_canvas = notebook.get("search") #Canvas(searchPane,bg = "#FFECDC",height = 400,width = 700,bd = 0,highlightthickness = 0,relief = "ridge")
+search_canvas = notebook.get("search")
 
 
 search_canvas.create_image(102,59, anchor = "nw", image= bg_img)
@@ -1096,8 +1082,6 @@ search_canvas.create_image(102,59, anchor = "nw", image= bg_img)
 
 
 # 1st long bar
-# canvas.create_image(123,85, anchor = "nw", image= search_long_img)
-
 semester_box = CustomDropDown(search_canvas,text = "Semester (REQUIRED):", values = (xmlSrc.xpath('//*[@id="ddlTerm"]/option/text()')), width = 286, img = search_long_img, text_width = 25)
 semester_box.place(in_=search_canvas, x=123,y=85)
 
@@ -1108,7 +1092,6 @@ except:
 
 
 # 2nd long bar
-# canvas.create_image(123,161, anchor = "nw", image= search_long_img)
 vals = (xmlSrc.xpath('//*[@id="ddlDept"]/option/text()'))
 vals.insert(0,"")
 
@@ -1116,7 +1099,6 @@ subject_box = CustomDropDown(search_canvas,text = "Subject:", values = vals, wid
 subject_box.place(in_=search_canvas, x=123,y=161)
 
 # 3rd long bar
-# canvas.create_image(123,237, anchor = "nw", image= search_long_img)
 vals =  (xmlSrc.xpath('//*[@id="ddlTypes"]/option/text()'))
 vals.insert(0,"")
 
@@ -1127,12 +1109,10 @@ course_box.place(in_=search_canvas, x=123,y=237)
 
 
 # 1st short bar
-# canvas.create_image(429,85, anchor = "nw", image= search_short_img)
 id_box = CustomDropDown(search_canvas,text = "Course ID:", values = None, width = 146, img = search_short_img, text_width = 12, list_width=21)
 id_box.place(in_=search_canvas, x=429,y=85)
 
 # 2nd short bar
-# search_canvas.create_image(429,161, anchor = "nw", image= search_short_img)
 keywords_box = CustomDropDown(search_canvas,text = "Keywords:", values = None, width = 146, img = search_short_img, text_width = 12, list_width=21)
 keywords_box.place(in_=search_canvas, x=429,y=161)
 
@@ -1170,7 +1150,6 @@ search_btn.place(in_=search_canvas, x=447.0,y=234.0,width=103.0,height=60.0)
 
 
 
-# notebook.add_element(searchPane, "search",0,0)
 
 #===================== Results Component =====================#
 
@@ -1216,7 +1195,6 @@ for entry in range(0,len(current_classes)):
 
 
 
-# print(time.strftime("%H:%M:%S", time.localtime()), "    -Starting Program")
 logger.info("Starting GUI Program")
 root.mainloop()
 
