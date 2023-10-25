@@ -138,49 +138,6 @@ class CustomDropDown(Frame):
 
 
 
-class CustomCombobox(ttk.Combobox):
-    def __init__(self, parent,values = None, startingText = '',fg = 'black',  *args, **kw):
-        ttk.Combobox.__init__(self, parent, *args, **kw)
-        self.values = values
-        self['values'] = values
-
-        self.startingText = startingText
-        self.set(startingText)
-        self.configure(foreground="#777777")
-
-        self.fg = fg
-
-        self.bind('<Button-1>', self.manage_initial_text)
-        self.bind('<KeyRelease>', self.manage_combobox)
-
-    def manage_initial_text(self, event):
-
-        if self.get() == self.startingText:
-            self.set('')
-            self.configure(foreground=self.fg)
-
-
-    def manage_combobox(self, event):
-        value = event.widget.get()
-
-        if value == '':
-            self['values'] = self.values
-
-        else:
-            data = []
-            for item in self.values:
-                if value.lower() in item.lower():
-                    data.append(item)
-            data.sort()
-            self['values'] = data
-
-    def reset(self):
-        self.set(self.startingText)
-        self.configure(foreground="#777777")
-        self['values'] = self.values
-
-
-
 
 
 
@@ -426,7 +383,7 @@ class VerticalScrolledFrame(ttk.Frame):
         # Create a canvas object and a vertical scrollbar for scrolling it.
         vscrollbar = ttk.Scrollbar(self, orient=VERTICAL)
         vscrollbar.pack(fill=Y, side=RIGHT, expand=FALSE)
-        self.canvas = Canvas(self, bd=0, highlightthickness=0, 
+        self.canvas = Canvas(self, bd=0, highlightthickness=0, bg='#FFECDC',
                                 width = 400, height = 550,
                                 yscrollcommand=vscrollbar.set)
         self.canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
@@ -465,7 +422,7 @@ class VerticalScrolledFrame(ttk.Frame):
 theme = ["#E85A4F", "#E98074", "#8E8D8A", "#D8C3A5", "#EAE7DC"]
 
 loadData = []  # json.loads(open("scraped_classes.json", "r").read())
-load_dropbox = json.loads(open("dropbox_info.json", "r").read())
+# load_dropbox = json.loads(open("dropbox_info.json", "r").read())
 
 current_classes = json.loads(open("saved_classes.json", "r").read())
 
@@ -976,13 +933,13 @@ btn_remove_g = PhotoImage(
 
 
 search_img  = PhotoImage(
-    file=relative_to_assets("search_s.png"))
+    file=relative_to_assets("search_down.png"))
 results_img  = PhotoImage(
-    file=relative_to_assets("results.png"))
+    file=relative_to_assets("res_up.png"))
 schedule_img  = PhotoImage(
-    file=relative_to_assets("schedule.png"))
+    file=relative_to_assets("sch_up.png"))
 requirements_img  = PhotoImage(
-    file=relative_to_assets("requirements.png"))
+    file=relative_to_assets("req_up.png"))
 
 #Photo images for search widget
 bg_img = PhotoImage(file=relative_to_assets("search_bg.png"))
@@ -1007,6 +964,21 @@ draw_cal()
 draw_header()
 
 #===================== Set Up Tabview =====================#
+
+def change_tabview_btn(event):
+#set all tabs to bg, find new tab and set it to light color with current
+
+    match (event.widget.index("current")):
+        case 0:
+            pass
+        case 1:
+            pass
+        case 2:
+            pass
+        case 3:
+            pass
+
+
 tabposition = ttk.Style()
 tabposition.configure('TNotebook', sticky='w', tabposition='nw',borderwidth=0,  highlightthickness = 0)
 tabposition.layout("Tab",
@@ -1014,13 +986,17 @@ tabposition.layout("Tab",
     [('Notebook.padding', {'side': 'top', 'sticky': 'nswe', 'children':
             [('Notebook.label', {'side': 'top', 'sticky': ''})],})],})])
 
+s = ttk.Style()
+# Create style used by default for all Frames
+s.configure('TFrame', background='#FFECDC')
+
 tabview = ttk.Notebook(root,  height = 600, width = 400)
 search = ttk.Frame(tabview)
 results = ttk.Frame(tabview)
 classes = ttk.Frame(tabview)
 requirements = ttk.Frame(tabview)
 
-tabview.add(search, image=search_img)
+tabview.add(search, image=search_img, underline=0, padding=0)
 tabview.add(results, image = results_img)
 tabview.add(classes, image=schedule_img)
 tabview.add(requirements, image = requirements_img)
@@ -1028,7 +1004,7 @@ tabview.add(requirements, image = requirements_img)
 tabview.pack(expand = 1, fill ="both")
 
 
-
+tabview.bind("<<NotebookTabChanged>>", change_tabview_btn)
 
 #===================== Search Component =====================#
 
@@ -1037,10 +1013,12 @@ browser.get('https://cdcs.ur.rochester.edu/')
 xmlSrc = lxml.html.fromstring(browser.page_source)
 
 
-searchPane = Frame(search, width = 200, height = 100, relief=GROOVE, bd = 2)
+searchPane = Frame(search, width = 200, height = 100, relief=GROOVE, bd = 0)
 
 
-search_canvas = Canvas(searchPane,bg = "#F2F4F1",height = 400,width = 696,bd = 0,highlightthickness = 0,relief = "ridge")
+search_canvas = Canvas(searchPane,bg = "#FFECDC",height = 400,width = 700,bd = 0,highlightthickness = 0,relief = "ridge")
+
+
 search_canvas.create_image(102,59, anchor = "nw", image= bg_img)
 
 

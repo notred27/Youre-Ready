@@ -245,12 +245,12 @@ root.title('UR Ready')  #Title for window
 root.geometry("890x650")
 root.option_add("*Font", ("Adobe Garamond Pro Bold", 10))
 
-tabposition = ttk.Style()
-tabposition.configure('TNotebook', sticky='w', tabposition='sw',borderwidth=0,  highlightthickness = 0)
-tabposition.layout("Tab",
-[('Notebook.tab', {'sticky': 'nswe', 'children':
-    [('Notebook.padding', {'side': 'top', 'sticky': 'nswe', 'children':
-            [('Notebook.label', {'side': 'top', 'sticky': ''})],})],})])
+# tabposition = ttk.Style()
+# tabposition.configure('TNotebook', sticky='w', tabposition='sw',borderwidth=0,  highlightthickness = 0)
+# tabposition.layout("Tab",
+# [('Notebook.tab', {'sticky': 'nswe', 'children':
+#     [('Notebook.padding', {'side': 'top', 'sticky': 'nswe', 'children':
+#             [('Notebook.label', {'side': 'top', 'sticky': ''})],})],})])
 
 
 
@@ -290,62 +290,217 @@ btn_remove_img = PhotoImage(
     file=relative_to_assets("remove_g.png"))
 
 
-search_img  = PhotoImage(
-    file=relative_to_assets("search_s.png"))
-results_img  = PhotoImage(
-    file=relative_to_assets("results.png"))
-schedule_img  = PhotoImage(
-    file=relative_to_assets("schedule.png"))
-requirements_img  = PhotoImage(
-    file=relative_to_assets("requirements.png"))
+search_up  = PhotoImage(
+    file=relative_to_assets("search_up.png"))
+res_up  = PhotoImage(
+    file=relative_to_assets("res_up.png"))
+sch_up = PhotoImage(
+    file=relative_to_assets("sch_up.png"))
+req_up  = PhotoImage(
+    file=relative_to_assets("req_up.png"))
+
+search_down  = PhotoImage(
+    file=relative_to_assets("search_down.png"))
+res_down  = PhotoImage(
+    file=relative_to_assets("res_down.png"))
+sch_down = PhotoImage(
+    file=relative_to_assets("sch_down.png"))
+req_down  = PhotoImage(
+    file=relative_to_assets("req_down.png"))
+
+tab_body  = PhotoImage(
+    file=relative_to_assets("folder_body.png"))
 
 
 
 
-cur_courses_pane = VerticalScrolledFrame(root)
-cur_courses_pane.pack()
+# cur_courses_pane = VerticalScrolledFrame(root)
+# cur_courses_pane.pack()
 
 
 
 
 
 
+tabposition = ttk.Style()
+tabposition.configure('TNotebook', sticky='w', tabposition='nw',borderwidth=0,  highlightthickness = 0, bd = 0,tabmargins = 0)
+tabposition.configure('TNotebook.tab', sticky='w', tabposition='nw',borderwidth=0,  highlightthickness = 0, bd = 0,tabmargins = 0, relif = SOLID)
+
+tabposition.layout("Tab",
+[('Notebook.tab', {'sticky': 'nswe', 'children':
+    [('Notebook.padding', {'side': 'top', 'sticky': 'nswe', 'children':
+            [('Notebook.label', {'side': 'top', 'sticky': ''})],})],})])
+tabposition.configure('TNotebook.Tab', padding=(0, 0, 0, 0))
+
+
+# style=ttk.Style()
+# style.layout("TNotebook", [])
+# style.configure("TNotebook", highlightbackground="#848a98",tabmargins=0)# borderwidth = 0, highlightthickness = 0)
 
 
 
-# tabview = ttk.Notebook(root,  height = 600, width = 400)
+# Create style used by default for all Frames
+# tabposition.configure('TFrame', background='#FFECDC', style = "TNotebook")
+
+
+tabview = ttk.Notebook(root,  height = 600, width = 400)
 
 
 
 
 
 
-print(len(current_classes))
-# Load all of the current saved clsses into the scroll pane     FIXME create a scrolling pane for this window
+# print(len(current_classes))
+# # Load all of the current saved clsses into the scroll pane     FIXME create a scrolling pane for this window
 
-for entry in range(0,10):
+# for entry in range(0,3):
 
-    if current_classes[entry]["Open"]:
-        if entry % 2 == 0:
-            ModernCourseElement(cur_courses_pane.interior, dict=current_classes[entry], type = "b")
-        else: 
-            ModernCourseElement(cur_courses_pane.interior, dict=current_classes[entry], type = "o")
+#     if current_classes[entry]["Open"]:
+#         if entry % 2 == 0:
+#             ModernCourseElement(cur_courses_pane.interior, dict=current_classes[entry], type = "b")
+#         else: 
+#             ModernCourseElement(cur_courses_pane.interior, dict=current_classes[entry], type = "o")
 
-    else:
-        ModernCourseElement(cur_courses_pane.interior, dict=current_classes[entry])
-
-search = ttk.Frame(tabview)
-results = ttk.Frame(tabview)
-classes = ttk.Frame(tabview)
-requirements = ttk.Frame(tabview)
-
-tabview.add(search, image=search_img)
-tabview.add(results, image = results_img)
-tabview.add(classes, image=schedule_img)
-tabview.add(requirements, image = requirements_img)
-
-tabview.pack(expand = 1, fill ="both")
+#     else:
+#         ModernCourseElement(cur_courses_pane.interior, dict=current_classes[entry])
 
 
+
+# classes = ttk.Frame(tabview)
+# requirements = ttk.Frame(tabview, )
+
+# tabview.add(search, image=search_img)
+# tabview.add(results, image = results_img)
+# tabview.add(classes, image=schedule_img)
+# tabview.add(requirements, image = requirements_img)
+
+# tabview.pack(expand = 1, fill ="both")
+
+
+
+
+class CustomTabview(Frame):
+    def __init__(self, parent, *args, **kw):
+        Frame.__init__(self, parent, *args, **kw)
+        self.frame_list = []
+        self.btn_list = []
+        self.btn_img_list = []
+
+        self.tab_frame = Frame(self)
+        self.current_frame = None
+        self.content_frame = Frame(self)
+        self.content_frame.pack_propagate(0)
+
+        self.tab_frame.pack(side = TOP, anchor="nw", pady = 0)
+        self.content_frame.pack(side=TOP, fill="both", expand = True,pady = 0)
+
+        
+        
+      
+
+
+    def switch_tab(self, i):
+
+        for j, btn in enumerate(self.btn_list):
+            if j == i:
+                self.btn_list[j].config(image= self.btn_img_list[j][1])
+            else:
+                self.btn_list[j].config(image= self.btn_img_list[j][0])
+
+        if not self.current_frame is self.frame_list[i]:
+            self.current_frame.grid_forget()
+            self.current_frame = self.frame_list[i]
+            self.frame_list[i].grid(row=1,column=1)
+
+
+
+    def add_tab(self, id, btn_imgs = None, **kwargs):
+        frame = Canvas(self.content_frame, name=id,  **kwargs)
+        frame.create_image(0,0, image=tab_body, anchor="nw")
+
+        
+        # use  and index by tab
+        i = len(self.frame_list) 
+        tab = Button(self.tab_frame, text=id, borderwidth=0, highlightthickness=0, command=lambda: self.switch_tab(i))
+        tab.pack(side=LEFT, padx=(0,5))
+
+
+        self.frame_list.append(frame)
+        self.btn_list.append(tab)
+        self.btn_img_list.append(btn_imgs)
+
+        if btn_imgs != None:
+            tab.config(image=btn_imgs[0])
+
+
+        
+
+        if len(self.frame_list) == 1:   
+            self.current_frame = frame
+            if btn_imgs != None:
+                tab.config(image = btn_imgs[1])
+            frame.grid(row=1,column=1)
+
+
+    def add_element(self, elem, frame_name, x, y):
+        elem.place(in_= self.get(frame_name), x = x, y = y)
+
+
+
+    def get(self, id):
+        for f in self.frame_list:
+            if f.winfo_name() == id:
+                return f
+        return None
+
+        
+        
+
+c = CustomTabview(root)
+c.add_tab("search", width = 1000,height = 1000, btn_imgs=(search_up,search_down))
+c.add_tab("results",width = 1000,height = 1000, btn_imgs=(res_up, res_down))
+c.add_tab("schedual",width = 1000,height = 1000,btn_imgs=(sch_up, sch_down))
+c.add_tab("requirements",width = 1000,height = 1000, btn_imgs=(req_up, req_down))
+
+
+b = Button(root, text= "test button")
+c.add_element(b, "results", 100, 100)
+
+# b.pack(side = LEFT)
+
+
+c.grid(row=0, column=0)
+
+
+
+
+
+
+# notebook = Frame(root)
+# notebook.pack(expand=True, fill='both', padx=5, pady=5)
+
+# search = Frame(notebook, width = 100, bg = "red")
+# search.pack_forget()
+
+# result_courses_pane = VerticalScrolledFrame(search)
+# result_courses_pane.pack()
+
+# results = Frame(notebook)
+# results.pack_forget()
+
+
+# curren_tab = search
+
+# tab1 = Button(notebook, text="Tab 1", command=lambda: switch_tab(search))
+# tab2 = Button(notebook, text="Tab 2", command=lambda: switch_tab(results))
+
+# tab1.pack(side="left", anchor="nw")
+# tab2.pack(side="left", anchor="nw")
+
+# search.pack(expand=True, fill='both')
+# results.pack(expand=True, fill='both')
 
 root.mainloop()
+
+
+
