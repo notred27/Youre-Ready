@@ -187,6 +187,11 @@ class ModernCourseElement(ttk.Frame):
         self.type = type
         self.mode = mode
 
+        self.check_list = []
+        
+
+
+        self.num_sections = 0
 
         if self.type == "b":
             self.add_img = btn_b_add
@@ -215,6 +220,7 @@ class ModernCourseElement(ttk.Frame):
         self.canvas.create_rectangle(0,0,681.0,54,fill="#EDEDED",outline="")
         self.draw_banner()
 
+        self.section_list = Frame(self.canvas, bg = self.bg_color, pady=0, borderwidth=2,bd = 2)
                 
         self.btn_info = Button(self.canvas,image=self.info_img, borderwidth=0,highlightthickness=0,command = lambda *args: self.toggle_dropdown(),relief="flat")
         self.btn_info.place(in_=self.canvas,x=579.0,y=7.0,width=95.0,height=21.0)#width and height are 2 less than they should be: hack to fix white border on click #FIXME
@@ -236,6 +242,18 @@ class ModernCourseElement(ttk.Frame):
         self.canvas.pack(pady = (10,0))
         self.pack(anchor="w")
 
+        try:
+            for section in dict["Sections"]:
+                print(section)
+                self.add_section(section["Title"], "", section["Instructor"], section["Days"], section["Time"], section["Room"], section["Enrolled"], section["Cap"], section["Showing"])
+
+
+        except Exception as e:
+            print(e)
+            pass
+
+
+
     def toggle_dropdown(self):
         if self.canvas.winfo_height() <= 60:
             self.make_text(self.dict)
@@ -250,23 +268,70 @@ class ModernCourseElement(ttk.Frame):
         self.canvas.create_image(0,0, anchor=NW, image=self.banner_img)
 
         # Course Number
-        self.canvas.create_text(14.0,9.0,anchor="nw",text=self.dict["Title"],fill="#FFFFFF",font=("IstokWeb Bold", 16 * -1, "bold"))
 
-        days = []
-        for d in self.dict["Days"]:
-            days.append(day_lookup[d])
+        title = self.dict["Title"].split(" ")
+        title[1] = title[1][:3]
+        self.canvas.create_text(14.0,9.0,anchor="nw",text=title,fill="#FFFFFF",font=("IstokWeb Bold", 16 * -1, "bold"))
 
-        self.canvas.create_text(100.0,30.0,anchor="nw",text=("/".join(days) + ": " + time_to_str(self.dict["Start"]) + " - " + time_to_str(self.dict["End"])),fill="#FFFFFF",font=("IstokWeb Bold", 12 * -1, "bold"))
+        # days = []
+        # for d in self.dict["Days"]:
+        #     days.append(day_lookup[d])
+
+        # self.canvas.create_text(100.0,30.0,anchor="nw",text=("/".join(days) + ": " + time_to_str(self.dict["Start"]) + " - " + time_to_str(self.dict["End"])),fill="#FFFFFF",font=("IstokWeb Bold", 12 * -1, "bold"))
 
         self.canvas.create_text(20.0,30.0,anchor="nw",text=self.dict["Credit"] + " credits",fill="#FFFFFF",font=("IstokWeb Bold", 12 * -1, "bold"))
 
-        if self.dict["Open"]:
-            self.canvas.create_text(454.0,9.0,anchor="nw",text="Open",fill="#FFFFFF",font=("IstokWeb Bold", 14 * -1, "bold"))
-        else:
-            self.canvas.create_text(454.0,9.0,anchor="nw",text="Closed",fill="#FFFFFF",font=("IstokWeb Bold", 14 * -1, "bold"))
+        # if self.dict["Open"]: #FIXME
+        #     self.canvas.create_text(454.0,9.0,anchor="nw",text="Open",fill="#FFFFFF",font=("IstokWeb Bold", 14 * -1, "bold"))
+        # else:
+        #     self.canvas.create_text(454.0,9.0,anchor="nw",text="Closed",fill="#FFFFFF",font=("IstokWeb Bold", 14 * -1, "bold"))
+
+
         #Split this into 2 that sit on top of each other?
         # canvas.create_text(170.0,9.0,anchor="nw",text="Monday/Wednesday: 615pm - 730 pm",fill="#FFFFFF",font=("IstokWeb Bold", 14 * -1))
+    def add_section(self, title = "", course_type = "",  instructor = "", days = "", time = "", room = "", enrolled = "", cap = "", showing = False):
 
+                
+        color = "#dbdbdb"
+        if self.num_sections % 2:
+            color = "#ffffff"
+
+        section_frame = Canvas(self.section_list, width = 670, height = 24, bg=color, bd=0, highlightthickness=0)
+
+        #FIXME maybe make frames for each line, but that would drastically increase the complexity
+        # print(f'{title:<14}    {course_type:<14}    {instructor:<20}    {days:<20}    {time:<12}    {room:<12}')
+        l = Label(section_frame, text = f'{title:<14}{course_type:<20}{instructor:<30}{days:<20}{time:<12}{room:<20}{enrolled:<20}', bg=color,font=("IstokWeb Bold", 12 * -1, "bold"))
+
+        section_frame.create_text(5,5, text=title, anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
+        section_frame.create_text(70,5, text=course_type, anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
+        section_frame.create_text(140,5, text=instructor, anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
+        section_frame.create_text(255,5, text=days + " : " + time, anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
+        section_frame.create_text(420,5, text=room, anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
+        section_frame.create_text(550,5, text= str(enrolled) + "/" + str(cap) +" Enrolled", anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
+        # section_frame.create_text(5,5, text=title, anchor="nw",font=("IstokWeb Bold", 12 * -1, "bold"))
+
+
+        # self.check_list.append(IntVar())
+        # check = Checkbutton(section_frame, text = "", variable= self.check_list[len(self.check_list) - 1], bg=color, pady=0)
+        # check.bind('<ButtonRelease>', self.print_check_values)
+
+        var = BooleanVar()
+        var.set(showing)
+        i = self.num_sections   #FIXME quick hack to get locla var instead of using pointer reference in th ebelow functrion
+        check = Checkbutton(section_frame, text = "",variable=var, command = lambda: self.testcheck(i), bg=color, pady=0)
+        self.check_list.append(var)
+
+        # check.pack(side=RIGHT)
+        check.place(in_=section_frame, x=640, y = 0)
+
+        self.num_sections+= 1
+        section_frame.pack(anchor="nw")
+
+    def testcheck(self, i): #TODO update this so it changes the calender too
+        self.dict["Sections"][i]["Showing"] = self.check_list[i].get()
+
+        #Redraw the canvas
+        print(self.dict["Sections"][i]["Title"] + str(self.check_list[i].get()))
 
     def make_text(self, dict):     
         #Find number of lines needing and manually wrap text
@@ -287,38 +352,48 @@ class ModernCourseElement(ttk.Frame):
                 line = t[i]
         the_text += line
 
-
+        
+        # self.section_list.place(in_=self.canvas, x=0,y=0)
+        
         #This is the number of lines the text will be
         num_lines = the_text.count("\n")
 
         # Dynamically size canvas and bg to the text length
-        self.canvas.config(height=140 + 12 * max(0,num_lines-3) + 72)
-        self.canvas.create_rectangle(0,0,681.0,140 + 12 * max(0,num_lines-3) + 72,fill="#EDEDED",outline="")
-        self.canvas.create_image(0,140 + 12 * max(0,num_lines-3), anchor=NW, image=self.body_img)
-        self.canvas.create_rectangle(0.0,20.0,681.0,140 + 12 * max(0,num_lines-3),fill=self.bg_color,outline="")
+        self.canvas.config(height=140 + 12 * max(0,num_lines-3) + 72 + 25 * self.num_sections)
+        self.canvas.create_rectangle(0,0,681.0,140 + 12 * max(0,num_lines-3) + 72 + 25 * self.num_sections,fill="#EDEDED",outline="")
+        self.canvas.create_image(0,140 + 12 * max(0,num_lines-3)  + 25 * self.num_sections, anchor=NW, image=self.body_img)
+        self.canvas.create_rectangle(0.0,20.0,681.0,140 + 12 * max(0,num_lines-3)  + 25 * self.num_sections,fill=self.bg_color,outline="")
 
         self.draw_banner()
 
         # Title & Enrolled
         self.canvas.create_text(7.0,66.0,anchor="nw",text=self.dict["Title"],fill="#000000",font=("IstokWeb", 14 * -1, "bold"))
-        self.canvas.create_text(573.0,66.0,anchor="nw",text= dict["Enrolled"] + "/" + dict["Capacity"] +" Enrolled",fill="#000000",font=("IstokWeb Bold", 12 * -1, "bold"))
+        # self.canvas.create_text(573.0,66.0,anchor="nw",text= dict["Enrolled"] + "/" + dict["Capacity"] +" Enrolled",fill="#000000",font=("IstokWeb Bold", 12 * -1, "bold"))
         
         # Semesters offered
         self.canvas.create_text(7.0,89.0,anchor="nw",text="Offered: ",fill="#000000",font=("IstokWeb Bold", 12 * -1,'bold'))
         self.canvas.create_text(57.0,89.0,anchor="nw",text=(", ".join(self.dict["Offered"])),fill="#000000",font=("IstokWeb Bold", 12 * -1))
 
-        # Instructor           
-        self.canvas.create_text(7.0,106.0,anchor="nw",text="Instructor: ",fill="#000000",font=("IstokWeb Bold", 12 * -1, "bold"))
-        self.canvas.create_text(70.0,106.0,anchor="nw",text=self.dict["Instructor"],fill="#000000",font=("IstokWeb Bold", 12 * -1))
 
-        # Room
-        self.canvas.create_text(7.0,123.0,anchor="nw",text="Room: ",fill="#000000",font=("IstokWeb Bold", 12 * -1,'bold'))
-        self.canvas.create_text(47.0,123.0,anchor="nw",text=self.dict["Room"],fill="#000000",font=("IstokWeb Bold", 12 * -1))
+
+        
+        # Instructor           
+        self.canvas.create_text(7.0,106.0,anchor="nw",text="Sections: ",fill="#000000",font=("IstokWeb Bold", 12 * -1, "bold"))
+        # self.canvas.create_text(70.0,106.0,anchor="nw",text=self.dict["Instructor"],fill="#000000",font=("IstokWeb Bold", 12 * -1))
+
+        self.canvas.create_window(7.0,125.0, window=self.section_list, width = 670, anchor="nw")    #FIXME: fix things below the added courses
+
+        # # Room
+        # self.canvas.create_text(7.0,123.0,anchor="nw",text="Room: ",fill="#000000",font=("IstokWeb Bold", 12 * -1,'bold'))
+        # self.canvas.create_text(47.0,123.0,anchor="nw",text=self.dict["Room"],fill="#000000",font=("IstokWeb Bold", 12 * -1))
 
         # Class description
-        self.canvas.create_text(7.0,140.0,anchor="nw",text="Description: ",fill="#000000",font=("IstokWeb Bold", 12 * -1,'bold'))
-        self.canvas.create_text(7.0,140.0,anchor="nw",text=the_text,fill="#000000",font=("IstokWeb Bold", 12 * -1))
+        self.canvas.create_text(7.0,125.0 + 25 * self.num_sections,anchor="nw",text="Description: ",fill="#000000",font=("IstokWeb Bold", 12 * -1,'bold'))
+        self.canvas.create_text(7.0,125.0 + 25 * self.num_sections,anchor="nw",text=the_text,fill="#000000",font=("IstokWeb Bold", 12 * -1))
 
+    def print_check_values(self, event):  #FIXME this is sending values from before the current value is upddated
+        for i in self.check_list:
+            print(i.get())
 
     def toggle_show(self):
         if self.dict["Showing"]:
@@ -366,12 +441,15 @@ class ModernCourseElement(ttk.Frame):
         if self.dict not in current_classes:
             current_classes.append(self.dict)
 
-            if(len(current_classes) % 2 == 1):
-                ModernCourseElement(cur_courses_pane.interior,self.dict,mode=FALSE, type ="b")
-            else:
-                ModernCourseElement(cur_courses_pane.interior,self.dict,mode=FALSE, type ="b")
-            for day in self.dict["Days"]:
-                draw_class( day, " ".join(self.dict["Title"].split(" ")[0:3]), self.dict["Start"], color = "blue")
+            
+            ModernCourseElement(cur_courses_pane.interior,self.dict,mode=FALSE, type ="b")
+            
+
+
+            for section in self.dict["Sections"]:
+                if section["Showing"]:
+                    for day in section["Days"]:
+                        draw_class( day, " ".join(section["Title"]), section["Time"], color = "blue")   #FIXME trying to merge with the checklist
         update_overlap()
         draw_cal()
         draw_header()
@@ -761,100 +839,249 @@ def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
             browser.implicitly_wait(0.001)
 
             root = lxml.html.fromstring(browser.page_source)
+
+
+            seen_classes = []
             
             for table in root.xpath('//table[contains(@cellpadding, "3")]'): #FIXME make this parsing better
                 # tableID = "/html/body/form/div[3]/table[1]/tbody/tr[2]/td[2]/div/table/tbody/tr/td[3]/table[" + str(i) + "]/tbody/"
                 # for x in range(1, 10,2 ): #len(tables)
-                dict = {"Title": "",
-                    "Days": "",
-                    "Term": "",
-                    "Credit": "",
-                    "Open": False,
-                    "Start": "",
-                    "End": "",
-                    "Room": "",
-                    "Capacity": "",
-                    "Enrolled": "",
-                    "Instructor": "",
-                    "Description": "",
-                    "Restrictions": [],
-                    "Offered": "",
-                    "Showing": True}
 
-                try:
-                    dict["Title"] = str(table.xpath(".//span[contains(@id,'lblCNum')]/text()")[0]) + " " + str(table.xpath(".//span[contains(@id,'lblTitle')]/text()")[0])
-                except:
+                try: #Get the title for the class
+                    title2= str(table.xpath(".//span[contains(@id,'lblCNum')]/text()")[0]).split(" ")
+                    title2[1] = title2[1][:3]
+                    title2 = " ".join(title2)
+                    # print(title2)
+
+
+                    if title2 in seen_classes:
+
+                        #print(parent["Sections"])
+
+                        # Find the overall course
+                        parent = list(filter(lambda course: title2 in course['Title'] , loadData))[0]
+
+                        section = {"Title":"",
+                                   "Type":"",
+                                   "Instructor":"",
+                                   "Days":"",
+                                   "Time":"",
+                                   "Room":"",
+                                   "Enrolled":"",
+                                   "Cap":"",
+                                   "Showing": False}
+
+
+                        try:
+                            section["Title"] = str(table.xpath(".//span[contains(@id,'lblCNum')]/text()")[0])
+                        except:
+                            pass
+
+                        #TODO add type
+                        
+                        try:
+                            section["Instructor"] =  str(table.xpath(".//span[contains(@id,'lblInstructors')]/text()")[0])
+                        except:
+                            pass
+
+                        try:    
+                            section["Days"] =  str(table.xpath(".//span[contains(@id,'lblDay')]/text()")[0])
+                        except:
+                            pass
+
+                        #FIXME add time conversion and day conversion here
+                        try:
+                            dict["Time"] = int(table.xpath(".//span[contains(@id,'lblStartTime')]/text()")[0])
+                        except:
+                            pass
+
+                        try:
+                            section["Room"] =  str(table.xpath(".//span[contains(@id,'lblBuilding')]/text()")[0])
+                        except:
+                            pass
+
+
+                        try:
+                            section["Cap"] =table.xpath(".//span[contains(@id,'lblSectionCap')]/text()")[0]
+                        except:
+                            pass
+
+                        try:
+                            section["Enrolled"] =  table.xpath(".//span[contains(@id,'lblSectionEnroll')]/text()")[0]
+                        except:
+                            pass
+
+
+                        parent["Sections"].append(section)
+
+              
+                        
+                        print(parent)
+                     
+
+                    else:
+                        seen_classes.append(title2)
+
+
+                        dict = {"Title": "",
+                            # "Days": "",
+                            "Term": "",
+                            "Credit": "",
+                            "Sections": [],
+                            
+                                # "Open": False,
+                                # "Start": "",
+                                # "End": "",
+                                # "Room": "",
+                                # "Capacity": "",
+                                # "Enrolled": "",
+                                # "Instructor": ""
+                                # ,
+                            "Description": "",
+                            "Restrictions": [],
+                            "Offered": "",
+                            "Showing": True}
+
+                        try:
+                            dict["Title"] = str(table.xpath(".//span[contains(@id,'lblCNum')]/text()")[0]) + " " + str(table.xpath(".//span[contains(@id,'lblTitle')]/text()")[0])
+                            
+                        except Exception as e:
+                            print(e)
+                            pass
+                        
+                        # try:
+                        #     dict["Days"] =  str(table.xpath(".//span[contains(@id,'lblDay')]/text()")[0])
+                        # except:
+                        #     pass
+
+                        try:
+                            dict["Term"] =  str(table.xpath(".//span[contains(@id,'lblTerm')]/text()")[0])
+                            
+                        except:
+                            pass
+
+                        try:
+                            dict["Credit"] = str(table.xpath(".//span[contains(@id,'lblCredits')]/text()")[0])   
+                            
+                        except:
+                            pass
+
+                        # try:  #FIXME do I need this??
+                        #     dict["Open"] = "Open" == str(table.xpath(".//span[contains(@id,'lblStatus')]/text()")[0])
+                        # except:
+                        #     pass
+
+                        # try:
+                        #     dict["Start"] = int(table.xpath(".//span[contains(@id,'lblStartTime')]/text()")[0])
+                        # except:
+                        #     pass
+
+                        # try:
+                        #     dict["End"] =  int(table.xpath(".//span[contains(@id,'lblEndTime')]/text()")[0])
+                        # except:
+                        #     pass
+
+                        # try:
+                        #     dict["Room"] =  str(table.xpath(".//span[contains(@id,'lblBuilding')]/text()")[0])
+                        # except:
+                        #     pass
+
+                        # try:
+                        #     dict["Capacity"] =table.xpath(".//span[contains(@id,'lblSectionCap')]/text()")[0]
+                        # except:
+                        #     pass
+
+                        # try:
+                        #     dict["Enrolled"] =  table.xpath(".//span[contains(@id,'lblSectionEnroll')]/text()")[0]
+                        # except:
+                        #     pass
+
+                        # try:
+                        #     dict["Instructor"] =  str(table.xpath(".//span[contains(@id,'lblInstructors')]/text()")[0])
+                        # except:
+                        #     pass
+
+                        try:    #TODO separate restrictions from this section(idk if I still need this as the text length currently captures restrictions)
+
+                            for children in table.xpath(".//span[contains(@id,'lblDesc')]"):
+                                for x in children.itertext():
+                                    dict["Description"] += x + "\n"
+                        except:
+                            pass
+
+                        try:
+                            dict["Offered"] = table.xpath(".//span[contains(@id,'lblOffered')]/text()")[0].split(" ")
+
+                            if "" in dict["Offered"]:
+                                dict["Offered"].remove("")
+                        except:
+                            pass
+                        
+                        section = {"Title":"",
+                                   "Type":"",
+                                   "Instructor":"",
+                                   "Days":"",
+                                   "Time":"",
+                                   "Room":"",
+                                   "Enrolled":"",
+                                   "Cap":"",
+                                   "Showing": False}
+
+
+                        try:
+                            section["Title"] = str(table.xpath(".//span[contains(@id,'lblCNum')]/text()")[0])
+                        except:
+                            pass
+
+                        #TODO add type
+                        
+                        try:
+                            section["Instructor"] =  str(table.xpath(".//span[contains(@id,'lblInstructors')]/text()")[0])
+                        except:
+                            pass
+
+                        try:    
+                            section["Days"] =  str(table.xpath(".//span[contains(@id,'lblDay')]/text()")[0])
+                        except:
+                            pass
+
+                        #FIXME add time conversion and day conversion here
+                        try:
+                            dict["Time"] = int(table.xpath(".//span[contains(@id,'lblStartTime')]/text()")[0])
+                        except:
+                            pass
+
+                        try:
+                            section["Room"] =  str(table.xpath(".//span[contains(@id,'lblBuilding')]/text()")[0])
+                        except:
+                            pass
+
+
+                        try:
+                            section["Cap"] =table.xpath(".//span[contains(@id,'lblSectionCap')]/text()")[0]
+                        except:
+                            pass
+
+                        try:
+                            section["Enrolled"] =  table.xpath(".//span[contains(@id,'lblSectionEnroll')]/text()")[0]
+                        except:
+                            pass
+
+
+                        dict["Sections"].append(section)
+
+                        loadData.append(dict)
+
+                        # create a new dictionary for the class
+                        pass
+
+                except Exception as e:
+                    print(e)
                     pass
+
+
                 
-                try:
-                    dict["Days"] =  str(table.xpath(".//span[contains(@id,'lblDay')]/text()")[0])
-                except:
-                    pass
-
-                try:
-                    dict["Term"] =  str(table.xpath(".//span[contains(@id,'lblTerm')]/text()")[0])
-                    
-                except:
-                    pass
-
-                try:
-                    dict["Credit"] = str(table.xpath(".//span[contains(@id,'lblCredits')]/text()")[0])   
-                    
-                except:
-                    pass
-
-                try:
-                    dict["Open"] = "Open" == str(table.xpath(".//span[contains(@id,'lblStatus')]/text()")[0])
-                except:
-                    pass
-
-                try:
-                    dict["Start"] = int(table.xpath(".//span[contains(@id,'lblStartTime')]/text()")[0])
-                except:
-                    pass
-
-                try:
-                    dict["End"] =  int(table.xpath(".//span[contains(@id,'lblEndTime')]/text()")[0])
-                except:
-                    pass
-
-                try:
-                    dict["Room"] =  str(table.xpath(".//span[contains(@id,'lblBuilding')]/text()")[0])
-                except:
-                    pass
-
-                try:
-                    dict["Capacity"] =table.xpath(".//span[contains(@id,'lblSectionCap')]/text()")[0]
-                except:
-                    pass
-
-                try:
-                    dict["Enrolled"] =  table.xpath(".//span[contains(@id,'lblSectionEnroll')]/text()")[0]
-                except:
-                    pass
-
-                try:
-                    dict["Instructor"] =  str(table.xpath(".//span[contains(@id,'lblInstructors')]/text()")[0])
-                except:
-                    pass
-
-                try:    #TODO separate restrictions from this section(idk if I still need this as the text length currently captures restrictions)
-
-                    for children in table.xpath(".//span[contains(@id,'lblDesc')]"):
-                     for x in children.itertext():
-                         dict["Description"] += x + "\n"
-                except:
-                    pass
-
-                try:
-                    dict["Offered"] = table.xpath(".//span[contains(@id,'lblOffered')]/text()")[0].split(" ")
-
-                    if "" in dict["Offered"]:
-                        dict["Offered"].remove("")
-                except:
-                    pass
-
-                loadData.append(dict)
+                
 
         except Exception as e: 
             logger.error("Error reading / parsing data")

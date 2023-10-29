@@ -180,14 +180,25 @@ class ModernCourseElement(ttk.Frame):
                 # section_frame.create_text(5,5, text=title, anchor="nw",font=("IstokWeb Bold", 12 * -1, "bold"))
 
 
-                self.check_list.append(IntVar())
-                check = Checkbutton(section_frame, text = "", variable= self.check_list[len(self.check_list) - 1], bg=color, pady=0)
-                check.bind('<ButtonRelease>', self.print_check_values)
+
+                var = BooleanVar()
+                i = self.num_sections
+                check = Checkbutton(section_frame, text = "",variable=var, command = lambda: self.testcheck(i), bg=color, pady=0)
+
+
+
+                self.check_list.append(var)
+
                 # check.pack(side=RIGHT)
                 check.place(in_=section_frame, x=640, y = 0)
 
                 self.num_sections+= 1
                 section_frame.pack(anchor="nw")
+
+
+    def testcheck(self, i):
+        print(i)
+        print('Check test: ' + str(self.check_list[i].get()))
 
     def print_check_values(self, event):  #FIXME this is sending values from before the current value is upddated
         for i in self.check_list:
@@ -382,7 +393,6 @@ tab_body  = PhotoImage(
 
 
 
-#this is a test
 
 
 
