@@ -405,7 +405,7 @@ class ModernCourseElement(ttk.Frame):
         update_overlap()
         # draw_cal()
         calender_component.draw()
-        draw_header()
+        # draw_header()
 
 
 
@@ -425,7 +425,7 @@ class ModernCourseElement(ttk.Frame):
         update_overlap()
         # draw_cal()
         calender_component.draw()
-        draw_header()
+        # draw_header()
 
 
     def remove_course_from_schedule(self):
@@ -435,7 +435,7 @@ class ModernCourseElement(ttk.Frame):
         self.destroy()
         # draw_cal()
         calender_component.draw()
-        draw_header()
+    
 
 
         
@@ -499,7 +499,7 @@ indxS= 1
 indxE = 0
 numResults = len(loadData)
 
-sleepTime = 2   #For timeout checks
+sleepTime = 20   #For timeout checks
 
 
 # Print initial time
@@ -531,53 +531,11 @@ def time_to_str(time):
     return ""
 
 
-#TODO just make a calender element? can pass in a section object to update it
-def create_rounded_square(canvas, x, y, width, height, color, r = 10):  
-        canvas.create_rectangle(x + r,y,x +width - r ,y + height, fill = color,width = 0)   # vertical
-        canvas.create_rectangle(x ,y + r ,x + width,y + height - r, fill = color, width = 0) #horizontal
 
-        canvas.create_aa_circle(x + r, y + r, r , fill = color)  # top left
-        canvas.create_aa_circle(x + width - r, y + r, r, fill = color) # top right
-        canvas.create_aa_circle(x + r, y + height - r, r, fill = color) # bot left
-        canvas.create_aa_circle(x + width - r,  y + height - r, r, fill = color) # bot right
-
-
-def draw_header():  #TODO fix this so it doesn tdepend on the above redundant method
-    global header
-
-    header.create_rectangle(0,0,430,70,width = 0, fill = theme[0])
-    header.create_text(10,10, text = current_classes[0]["Offered"], anchor = "nw", fill = "white")
-
-    num_courses = 0
-    for course in current_classes:
-        if course["Showing"]:
-            num_courses += 1
-
-    create_rounded_square(header, 200, 10 , 20, 20, "white", r=5)
-    header.create_text(210,20, text = str(num_courses), anchor = "center", fill = theme[0])
-    header.create_text(225,20, text = "courses", anchor = "w", fill = "white")
-    
-    num_credits = int(get_num_credits())
-    create_rounded_square(header, 280, 10 , 20, 20, "white", r=5)
-    header.create_text(290,20, text = str(num_credits), anchor = "center", fill = theme[0])
-
-    if num_credits >= 20:
-        header.create_text(305,20, text = "credits (OVERLOAD)", anchor = "w", fill = "white")
-    else:
-        header.create_text(305,20, text = "credits", anchor = "w", fill = "white")
 
    
 
-def get_num_credits():
-    num_credits = 0
 
-    for course in current_classes:
-        if course["Showing"]:
-            try:
-                num_credits += float(course["Credit"])
-            except:
-                pass
-    return num_credits
 
 
 #FIXME this needs to be reimplemented
@@ -648,7 +606,40 @@ class CalenderElement():
                     else:
                         self.draw_class(day, " ".join(sec["Title"].split(" ")[0:2]), sec["Time"], color = "blue")
 
+        self.draw_header()
 
+
+    def draw_header(self):  #TODO fix this so it doesn tdepend on the above redundant method
+        global header
+
+        header.create_rectangle(0,0,430,70,width = 0, fill = theme[0])
+        # header.create_text(10,10, text = current_classes[0]["Offered"], anchor = "nw", fill = "white")    #FIXME change this to use an actual semester and not hardcoded
+
+        num_courses = len(self.showing_sections)
+
+        self.create_rounded_square(header, 200, 10 , 20, 20, "white", r=5)
+        header.create_text(210,20, text = str(num_courses), anchor = "center", fill = theme[0])
+        header.create_text(225,20, text = "courses", anchor = "w", fill = "white")
+        
+        num_credits = int(self.get_num_credits())
+        self.create_rounded_square(header, 280, 10 , 20, 20, "white", r=5)
+        header.create_text(290,20, text = str(num_credits), anchor = "center", fill = theme[0])
+
+        if num_credits >= 20:
+            header.create_text(305,20, text = "credits (OVERLOAD)", anchor = "w", fill = "white")
+        else:
+            header.create_text(305,20, text = "credits", anchor = "w", fill = "white")
+
+    def get_num_credits(self):  #FIXME change this to depend on the sections (although you will need to refer to the parent dict to get the credit value)
+        num_credits = 0
+
+        for course in current_classes:
+            if course["Showing"]:
+                try:
+                    num_credits += float(course["Credit"])
+                except:
+                    pass
+        return num_credits
 
     def draw_class(self, day = "", title = "", timeStart = 0, length = 115, color = "blue"):   #Add a block to the calender #FIXME to depend on actual length of the class
         time = timeStart - 700
@@ -686,7 +677,7 @@ class CalenderElement():
         self.canvas.create_text(x + 4, y + 15, anchor="nw", text = timeStr, fill  = 'white',font=("helvetica",8))
 
         #TODO / FIXME update to aa circle
-    def create_rounded_square(self, canvas, x, y, width, height, color, r = 10):
+    def create_rounded_square(self, canvas, x, y, width, height, color, r = 10):#TODO replace this with figma elements
         canvas.create_rectangle(x + r,y,x +width - r ,y + height, fill = color,width = 0)   # vertical
         canvas.create_rectangle(x ,y + r ,x + width,y + height - r, fill = color, width = 0) #horizontal
 
@@ -696,84 +687,6 @@ class CalenderElement():
         canvas.create_aa_circle(x + width - r,  y + height - r, r, fill = color) # bot right
 
         
-
-
-
-#TODO fix so elements get deleted with tags instead of having to redraw the entire canvas
-# def draw_cal(): #  Draw the background for the calender
-
-    # plan.delete('all')
-
-    # plan.create_line(0,0,14 +  400,0)
-    # for i, d in enumerate(day_lookup):
-    #     x = 25 +  i * 80
-    #     plan.create_text(x + 40,10, text=day_lookup[d],  anchor = "center")
-
-    # hours = ["", "8", "9","10","11", "12", "1", "2", "3","4","5", "6", "7","8", ""]
-    # for i in range(1,14):
-    #     x = 10 +  i * 40
-    #     plan.create_line(25,x,415,x, fill = theme[1])
-    #     plan.create_text(20,x, text= hours[i], anchor = "e", fill=  theme[1])
-
-
-    # for course in current_classes:
-    #     for sec in course:
-    #         if sec["Showing"]:
-                
-    #             overlap = False
-    #             for day in sec["Days"]:
-    #                 for other in current_classes:
-    #                     if not other == sec and day in other["Days"] and other["Showing"] and ((other["Start"] <= sec["Start"] and sec["Start"] <= other["End"]) or (sec["Start"] <= other["Start"] and other["Start"] <= sec["End"])):
-    #                         overlap = True
-
-    #             for day in sec["Days"]:
-    #                 if overlap:
-    #                     draw_class(day, " ".join(sec["Title"].split(" ")[0:2]), sec["Start"], color = "red")
-    #                 else:
-    #                     draw_class(day, " ".join(sec["Title"].split(" ")[0:2]), sec["Start"], color = "blue")
-
-    
-    
-
-
-
-# def draw_class(day = "", title = "", timeStart = 0, length = 115, color = "blue"):   #Add a block to the calender
-#     time = timeStart - 700
-#     rem = time % 100
-#     y = (time // 100) * 40 + ((rem / 60) * 40) + 10
-#     x = 25 +  days.index(day) * 80
-#     lengthOff = (length // 100) * 40 + ((length % 100 / 60) * 40)
-
-#     # Time formating (from 24:00 TO AM/PM)
-#     if ((timeStart + length) % 100) >=  60:
-#         length = length - 60 + 100
-
-#     if(timeStart >= 1300):
-#         timeStart = timeStart - 1200
-
-#     if(timeStart + length >= 1300):
-#         length = length - 1200
-
-#     timeStr = str(timeStart // 100) + ":" 
-#     if(timeStart % 100) >=10:
-#         timeStr = timeStr + str(timeStart % 100) + " - " + str((timeStart + length) // 100) + ":"
-#     else:
-#         timeStr = timeStr + "0" + str(timeStart % 100) + " - " + str((timeStart + length) // 100) + ":"
-        
-#     if(timeStart + length) % 100 >= 10:
-#         timeStr = timeStr + str((timeStart + length) % 100 )
-#     else:
-#         timeStr = timeStr + "0" +  str((timeStart + length) % 100 )
-
-
-    # create_rounded_square(plan, x + 2,y, 76 , lengthOff, color)
-
-
-    # plan.create_text(x + 4, y + 2, anchor="nw", text = title, fill  = 'white',font=("helvetica",10) )
-    # plan.create_text(x + 4, y + 15, anchor="nw", text = timeStr, fill  = 'white',font=("helvetica",8))
-
-
-
 
 
 # Functions for changing display on pages  
@@ -1219,7 +1132,7 @@ calander_frame.pack(side=RIGHT, anchor = "n", pady = 10, padx = 10)
 
 # draw_cal()
 calender_component.draw()
-draw_header()
+# draw_header()
 
 
 
@@ -1395,6 +1308,7 @@ notebook.add_element(cur_courses_pane, "schedual", 20, 50, anchor="nw")
 
 # Load all of the current saved clsses into the scroll pane
 for entry in range(0,len(current_classes)):
+    print(current_classes[entry])
     if current_classes[entry]["Showing"]:
         ModernCourseElement(cur_courses_pane.interior,current_classes[entry],mode=FALSE, type ="b")
     else:
