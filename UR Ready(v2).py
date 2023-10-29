@@ -27,7 +27,7 @@ logger.addHandler(fh)
 # sure that any classes that are added are for the same semester
 
 
-# Error with using dict["Title"] as a widget name when the title contains a special character
+
 
 #Error with hide unavailable classses missing a few classes that still show up as red and CLOSED later on
 
@@ -40,17 +40,19 @@ logger.addHandler(fh)
 # be according to the wrapped text, errors with UI element placing and consistancy, error when scraping credits that 
 # "Wrokshop" isn't recognized or set up correctly in the scraper
 
-
+#FIXME error with program not loading when there are no saved classes
+#Error with hide on dropdown menu not changing bg color untill it is hidden again
 
 
 # TODO for overlapping classes, add a yellow triangle in the bottom right with the number of classes in that space
-# For writing classes, workshops, recitations, add something to make it stand out on the calender
+# For writing classes, workshops, recitations, add something to make it stand out on the calender?
 
 # FIXME when scraping classes, remove "" for offered (when course isnt offered during a semester)
 
 # TODO make settings page to change timeout delay and other backend settigns, also add contact info for submitting bugs
-# change scraping so that same classes are grouped by section, and have dropdown show what sections there are and their days/times/instructors in a checklist
-# selecting any values in the checklist will show all checkewd values on the calender
+# change scraping so that same classes are grouped by section
+
+
 
 
 
@@ -154,26 +156,6 @@ class CustomDropDown(Frame):
 
 
 
-
-def update_overlap():       #TODO update so that this also controls the colors of the classes on the clander from draw_cal() method?
-    for course in current_classes:
-        if course["Showing"]:
-            try:
-                cur_courses_pane.interior.nametowidget(course["Title"].lower())._change_mode("normal")  #FIXME update for modern course frame
-            except:
-                pass
-
-    for course in current_classes:
-        if course["Showing"]:
-            
-            for day in course["Days"]:
-                for other in current_classes:
-                    if not other == course and day in other["Days"] and other["Showing"] and ((other["Start"] <= course["Start"] and course["Start"] <= other["End"]) or (course["Start"] <= other["Start"] and other["Start"] <= course["End"])):
-                        try:
-                            cur_courses_pane.interior.nametowidget(course["Title"].lower())._change_mode("overlap")
-                            cur_courses_pane.interior.nametowidget(other["Title"].lower())._change_mode("overlap")
-                        except:
-                            pass
                 
         
 
@@ -244,7 +226,6 @@ class ModernCourseElement(ttk.Frame):
 
         try:
             for section in dict["Sections"]:
-                print(section)
                 self.add_section(section["Title"], "", section["Instructor"], section["Days"], section["Time"], section["Room"], section["Enrolled"], section["Cap"], section["Showing"])
 
 
@@ -273,25 +254,14 @@ class ModernCourseElement(ttk.Frame):
         title[1] = title[1][:3]
         self.canvas.create_text(14.0,9.0,anchor="nw",text=title,fill="#FFFFFF",font=("IstokWeb Bold", 16 * -1, "bold"))
 
-        # days = []
-        # for d in self.dict["Days"]:
-        #     days.append(day_lookup[d])
-
-        # self.canvas.create_text(100.0,30.0,anchor="nw",text=("/".join(days) + ": " + time_to_str(self.dict["Start"]) + " - " + time_to_str(self.dict["End"])),fill="#FFFFFF",font=("IstokWeb Bold", 12 * -1, "bold"))
-
         self.canvas.create_text(20.0,30.0,anchor="nw",text=self.dict["Credit"] + " credits",fill="#FFFFFF",font=("IstokWeb Bold", 12 * -1, "bold"))
-
-        # if self.dict["Open"]: #FIXME
-        #     self.canvas.create_text(454.0,9.0,anchor="nw",text="Open",fill="#FFFFFF",font=("IstokWeb Bold", 14 * -1, "bold"))
-        # else:
-        #     self.canvas.create_text(454.0,9.0,anchor="nw",text="Closed",fill="#FFFFFF",font=("IstokWeb Bold", 14 * -1, "bold"))
-
 
         #Split this into 2 that sit on top of each other?
         # canvas.create_text(170.0,9.0,anchor="nw",text="Monday/Wednesday: 615pm - 730 pm",fill="#FFFFFF",font=("IstokWeb Bold", 14 * -1))
-    def add_section(self, title = "", course_type = "",  instructor = "", days = "", time = "", room = "", enrolled = "", cap = "", showing = False):
 
-                
+
+
+    def add_section(self, title = "", course_type = "",  instructor = "", days = "", time = 0, room = "", enrolled = "", cap = "", showing = False):#FIXME so this just uses dict and not separate argumens
         color = "#dbdbdb"
         if self.num_sections % 2:
             color = "#ffffff"
@@ -300,38 +270,53 @@ class ModernCourseElement(ttk.Frame):
 
         #FIXME maybe make frames for each line, but that would drastically increase the complexity
         # print(f'{title:<14}    {course_type:<14}    {instructor:<20}    {days:<20}    {time:<12}    {room:<12}')
-        l = Label(section_frame, text = f'{title:<14}{course_type:<20}{instructor:<30}{days:<20}{time:<12}{room:<20}{enrolled:<20}', bg=color,font=("IstokWeb Bold", 12 * -1, "bold"))
+        l = Label(section_frame, text = f'{title:<14}{course_type:<20}{instructor:<30}{days:<20}{str(time):<12}{room:<20}{enrolled:<20}', bg=color,font=("IstokWeb Bold", 12 * -1, "bold"))
 
         section_frame.create_text(5,5, text=title, anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
         section_frame.create_text(70,5, text=course_type, anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
         section_frame.create_text(140,5, text=instructor, anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
-        section_frame.create_text(255,5, text=days + " : " + time, anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
+        section_frame.create_text(255,5, text=days + " : " + str(time), anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
         section_frame.create_text(420,5, text=room, anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
         section_frame.create_text(550,5, text= str(enrolled) + "/" + str(cap) +" Enrolled", anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
-        # section_frame.create_text(5,5, text=title, anchor="nw",font=("IstokWeb Bold", 12 * -1, "bold"))
 
-
-        # self.check_list.append(IntVar())
-        # check = Checkbutton(section_frame, text = "", variable= self.check_list[len(self.check_list) - 1], bg=color, pady=0)
-        # check.bind('<ButtonRelease>', self.print_check_values)
 
         var = BooleanVar()
         var.set(showing)
+
+        
+
         i = self.num_sections   #FIXME quick hack to get locla var instead of using pointer reference in th ebelow functrion
         check = Checkbutton(section_frame, text = "",variable=var, command = lambda: self.testcheck(i), bg=color, pady=0)
         self.check_list.append(var)
 
-        # check.pack(side=RIGHT)
         check.place(in_=section_frame, x=640, y = 0)
+
+        if showing:
+            calender_component.add_to_cal(self.dict["Sections"][i])
+
+
 
         self.num_sections+= 1
         section_frame.pack(anchor="nw")
 
+
     def testcheck(self, i): #TODO update this so it changes the calender too
         self.dict["Sections"][i]["Showing"] = self.check_list[i].get()
 
+        if self.check_list[i].get():
+            calender_component.add_to_cal(self.dict["Sections"][i])
+
+        else:
+            calender_component.remove_from_cal(self.dict["Sections"][i])
+
+
+
         #Redraw the canvas
-        print(self.dict["Sections"][i]["Title"] + str(self.check_list[i].get()))
+        calender_component.draw()
+
+        
+
+        # print(self.dict["Sections"][i]["Title"] + str(self.check_list[i].get()))
 
     def make_text(self, dict):     
         #Find number of lines needing and manually wrap text
@@ -351,9 +336,6 @@ class ModernCourseElement(ttk.Frame):
                 the_text += line
                 line = t[i]
         the_text += line
-
-        
-        # self.section_list.place(in_=self.canvas, x=0,y=0)
         
         #This is the number of lines the text will be
         num_lines = the_text.count("\n")
@@ -366,34 +348,23 @@ class ModernCourseElement(ttk.Frame):
 
         self.draw_banner()
 
-        # Title & Enrolled
+        # Title
         self.canvas.create_text(7.0,66.0,anchor="nw",text=self.dict["Title"],fill="#000000",font=("IstokWeb", 14 * -1, "bold"))
-        # self.canvas.create_text(573.0,66.0,anchor="nw",text= dict["Enrolled"] + "/" + dict["Capacity"] +" Enrolled",fill="#000000",font=("IstokWeb Bold", 12 * -1, "bold"))
+
         
         # Semesters offered
         self.canvas.create_text(7.0,89.0,anchor="nw",text="Offered: ",fill="#000000",font=("IstokWeb Bold", 12 * -1,'bold'))
         self.canvas.create_text(57.0,89.0,anchor="nw",text=(", ".join(self.dict["Offered"])),fill="#000000",font=("IstokWeb Bold", 12 * -1))
 
 
-
-        
-        # Instructor           
-        self.canvas.create_text(7.0,106.0,anchor="nw",text="Sections: ",fill="#000000",font=("IstokWeb Bold", 12 * -1, "bold"))
-        # self.canvas.create_text(70.0,106.0,anchor="nw",text=self.dict["Instructor"],fill="#000000",font=("IstokWeb Bold", 12 * -1))
-
-        self.canvas.create_window(7.0,125.0, window=self.section_list, width = 670, anchor="nw")    #FIXME: fix things below the added courses
-
-        # # Room
-        # self.canvas.create_text(7.0,123.0,anchor="nw",text="Room: ",fill="#000000",font=("IstokWeb Bold", 12 * -1,'bold'))
-        # self.canvas.create_text(47.0,123.0,anchor="nw",text=self.dict["Room"],fill="#000000",font=("IstokWeb Bold", 12 * -1))
+        self.canvas.create_window(7.0,125.0, window=self.section_list, width = 670, anchor="nw")
 
         # Class description
         self.canvas.create_text(7.0,125.0 + 25 * self.num_sections,anchor="nw",text="Description: ",fill="#000000",font=("IstokWeb Bold", 12 * -1,'bold'))
         self.canvas.create_text(7.0,125.0 + 25 * self.num_sections,anchor="nw",text=the_text,fill="#000000",font=("IstokWeb Bold", 12 * -1))
 
-    def print_check_values(self, event):  #FIXME this is sending values from before the current value is upddated
-        for i in self.check_list:
-            print(i.get())
+
+
 
     def toggle_show(self):
         if self.dict["Showing"]:
@@ -407,7 +378,6 @@ class ModernCourseElement(ttk.Frame):
             self.banner_img = banner_g
             self.body_img = body_g
             self.bg_color = "#D8D8D8"
-
 
         else:
             # Switch button images
@@ -433,11 +403,13 @@ class ModernCourseElement(ttk.Frame):
         self.draw_banner()
         #TODO make a check if the body needs to be redrawn
         update_overlap()
-        draw_cal()
+        # draw_cal()
+        calender_component.draw()
         draw_header()
 
 
-    def add_course_to_schedule(self):
+
+    def add_course_to_schedule(self):   #FIXME
         if self.dict not in current_classes:
             current_classes.append(self.dict)
 
@@ -449,9 +421,10 @@ class ModernCourseElement(ttk.Frame):
             for section in self.dict["Sections"]:
                 if section["Showing"]:
                     for day in section["Days"]:
-                        draw_class( day, " ".join(section["Title"]), section["Time"], color = "blue")   #FIXME trying to merge with the checklist
+                        calender_component.draw_class( day, " ".join(section["Title"]), section["Time"], color = "blue")   #FIXME trying to merge with the checklist
         update_overlap()
-        draw_cal()
+        # draw_cal()
+        calender_component.draw()
         draw_header()
 
 
@@ -460,7 +433,8 @@ class ModernCourseElement(ttk.Frame):
             current_classes.remove(self.dict)
             
         self.destroy()
-        draw_cal()
+        # draw_cal()
+        calender_component.draw()
         draw_header()
 
 
@@ -475,7 +449,7 @@ class VerticalScrolledFrame(ttk.Frame):
         vscrollbar = ttk.Scrollbar(self, orient=VERTICAL)
         vscrollbar.pack(fill=Y, side=RIGHT, expand=FALSE)
         self.canvas = Canvas(self, bd=0, highlightthickness=0, bg='#FFECDC',
-                                width = 400, height = 450,
+                                width = 690, height = 450,
                                 yscrollcommand=vscrollbar.set)
         self.canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
         vscrollbar.config(command = self.canvas.yview)
@@ -485,9 +459,9 @@ class VerticalScrolledFrame(ttk.Frame):
         self.canvas.yview_moveto(0)
  
         # Create a frame inside the canvas which will be scrolled with it.
-        self.interior = ttk.Frame(self.canvas)
-        self.interior.bind('<Configure>', self._configure_interior)
-        self.canvas.bind('<Configure>', self._configure_canvas)
+        self.interior = ttk.Frame(self.canvas, width = 680)
+        self.interior.bind('<Configure>', self._configure_interior)   #FIXME
+        # self.canvas.bind('<Configure>', self._configure_canvas)
         self.interior_id = self.canvas.create_window(0, 0, window=self.interior, anchor=NW)
  
  
@@ -495,14 +469,15 @@ class VerticalScrolledFrame(ttk.Frame):
         # Update the scrollbars to match the size of the inner frame.
         size = (self.interior.winfo_reqwidth(), self.interior.winfo_reqheight())
         self.canvas.config(scrollregion=(0, 0, size[0], size[1]))
-        if self.interior.winfo_reqwidth() != self.canvas.winfo_width():
-            # Update the canvas's width to fit the inner frame.
-            self.canvas.config(width = self.interior.winfo_reqwidth())
+        # if self.interior.winfo_reqwidth() != self.canvas.winfo_width():
+        #     # Update the canvas's width to fit the inner frame.
+        #     self.canvas.config(width = self.interior.winfo_reqwidth())
          
     def _configure_canvas(self, event):
         if self.interior.winfo_reqwidth() != self.canvas.winfo_width():
             # Update the inner frame's width to fill the canvas.
             self.canvas.itemconfigure(self.interior_id, width=self.canvas.winfo_width())
+
 
     def _clear_contents(self):
         for c in self.interior.winfo_children():
@@ -524,7 +499,7 @@ indxS= 1
 indxE = 0
 numResults = len(loadData)
 
-sleepTime = 20  #For timeout checks
+sleepTime = 2   #For timeout checks
 
 
 # Print initial time
@@ -556,9 +531,18 @@ def time_to_str(time):
     return ""
 
 
+#TODO just make a calender element? can pass in a section object to update it
+def create_rounded_square(canvas, x, y, width, height, color, r = 10):  
+        canvas.create_rectangle(x + r,y,x +width - r ,y + height, fill = color,width = 0)   # vertical
+        canvas.create_rectangle(x ,y + r ,x + width,y + height - r, fill = color, width = 0) #horizontal
+
+        canvas.create_aa_circle(x + r, y + r, r , fill = color)  # top left
+        canvas.create_aa_circle(x + width - r, y + r, r, fill = color) # top right
+        canvas.create_aa_circle(x + r, y + height - r, r, fill = color) # bot left
+        canvas.create_aa_circle(x + width - r,  y + height - r, r, fill = color) # bot right
 
 
-def draw_header():
+def draw_header():  #TODO fix this so it doesn tdepend on the above redundant method
     global header
 
     header.create_rectangle(0,0,430,70,width = 0, fill = theme[0])
@@ -596,90 +580,200 @@ def get_num_credits():
     return num_credits
 
 
+#FIXME this needs to be reimplemented
+
+def update_overlap():       #TODO update so that this also controls the colors of the classes on the clander from draw_cal() method?
+    #Change the course frame to a different color when classes are overlapping
+    pass
+#     for course in current_classes:
+#         if course["Showing"]:
+#             try:
+#                 cur_courses_pane.interior.nametowidget(course["Title"].lower())._change_mode("normal")  #FIXME update for modern course frame
+#             except:
+#                 pass
+
+#     for course in current_classes:
+#         if course["Showing"]:
+            
+#             for day in course["Days"]:
+#                 for other in current_classes:
+#                     if not other == course and day in other["Days"] and other["Showing"] and ((other["Start"] <= course["Start"] and course["Start"] <= other["End"]) or (course["Start"] <= other["Start"] and other["Start"] <= course["End"])):
+#                         try:
+#                             cur_courses_pane.interior.nametowidget(course["Title"].lower())._change_mode("overlap")
+#                             cur_courses_pane.interior.nametowidget(other["Title"].lower())._change_mode("overlap")
+#                         except:
+#                             pass
+
+
+
+class CalenderElement():
+    def __init__(self, parent):
+        self.canvas= customtkinter.CTkCanvas(parent, width = 420, height = 580)
+
+        self.showing_sections = []
+        self.canvas.pack()
+
+    def add_to_cal(self, section):
+        self.showing_sections.append(section)
+
+    def remove_from_cal(self, section):
+        self.showing_sections.remove(section)
+
+    def draw(self):
+        self.canvas.delete('all')
+
+        self.canvas.create_line(0,0,14 +  400,0)
+        for i, d in enumerate(day_lookup):
+            x = 25 +  i * 80
+            self.canvas.create_text(x + 40,10, text=day_lookup[d],  anchor = "center")
+
+        hours = ["", "8", "9","10","11", "12", "1", "2", "3","4","5", "6", "7","8", ""]
+        for i in range(1,14):
+            x = 10 +  i * 40
+            self.canvas.create_line(25,x,415,x, fill = theme[1])
+            self.canvas.create_text(20,x, text= hours[i], anchor = "e", fill=  theme[1])
+
+
+        
+            for sec in self.showing_sections:
+                overlap = False
+                for other in self.showing_sections:
+                    for day in sec["Days"]:
+                        if not sec == other and day in other["Days"] and other["Showing"] and ((other["Time"] <= sec["Time"] and sec["Time"] <= other["End"]) or (sec["Time"] <= other["Time"] and other["Time"] <= sec["End"])):
+                            overlap = True
+                    
+                for day in sec["Days"]:
+                    if overlap:
+                        self.draw_class(day, " ".join(sec["Title"].split(" ")[0:2]), sec["Time"], color = "red")
+                    else:
+                        self.draw_class(day, " ".join(sec["Title"].split(" ")[0:2]), sec["Time"], color = "blue")
+
+
+
+    def draw_class(self, day = "", title = "", timeStart = 0, length = 115, color = "blue"):   #Add a block to the calender #FIXME to depend on actual length of the class
+        time = timeStart - 700
+        rem = time % 100
+        y = (time // 100) * 40 + ((rem / 60) * 40) + 10
+        x = 25 +  days.index(day) * 80
+        lengthOff = (length // 100) * 40 + ((length % 100 / 60) * 40)
+
+        # Time formating (from 24:00 TO AM/PM)
+        if ((timeStart + length) % 100) >=  60:
+            length = length - 60 + 100
+
+        if(timeStart >= 1300):
+            timeStart = timeStart - 1200
+
+        if(timeStart + length >= 1300):
+            length = length - 1200
+
+        timeStr = str(timeStart // 100) + ":" 
+        if(timeStart % 100) >=10:
+            timeStr = timeStr + str(timeStart % 100) + " - " + str((timeStart + length) // 100) + ":"
+        else:
+            timeStr = timeStr + "0" + str(timeStart % 100) + " - " + str((timeStart + length) // 100) + ":"
+            
+        if(timeStart + length) % 100 >= 10:
+            timeStr = timeStr + str((timeStart + length) % 100 )
+        else:
+            timeStr = timeStr + "0" +  str((timeStart + length) % 100 )
+
+
+        self.create_rounded_square(self.canvas, x + 2,y, 76 , lengthOff, color)
+
+
+        self.canvas.create_text(x + 4, y + 2, anchor="nw", text = title, fill  = 'white',font=("helvetica",10) )
+        self.canvas.create_text(x + 4, y + 15, anchor="nw", text = timeStr, fill  = 'white',font=("helvetica",8))
+
+        #TODO / FIXME update to aa circle
+    def create_rounded_square(self, canvas, x, y, width, height, color, r = 10):
+        canvas.create_rectangle(x + r,y,x +width - r ,y + height, fill = color,width = 0)   # vertical
+        canvas.create_rectangle(x ,y + r ,x + width,y + height - r, fill = color, width = 0) #horizontal
+
+        canvas.create_aa_circle(x + r, y + r, r , fill = color)  # top left
+        canvas.create_aa_circle(x + width - r, y + r, r, fill = color) # top right
+        canvas.create_aa_circle(x + r, y + height - r, r, fill = color) # bot left
+        canvas.create_aa_circle(x + width - r,  y + height - r, r, fill = color) # bot right
+
+        
+
 
 
 #TODO fix so elements get deleted with tags instead of having to redraw the entire canvas
-def draw_cal(): #  Draw the background for the calender
-    global classParent
-    plan.delete('all')
+# def draw_cal(): #  Draw the background for the calender
 
-    plan.create_line(0,0,14 +  400,0)
-    for i, d in enumerate(day_lookup):
-        x = 25 +  i * 80
-        plan.create_text(x + 40,10, text=day_lookup[d],  anchor = "center")
+    # plan.delete('all')
 
-    hours = ["", "8", "9","10","11", "12", "1", "2", "3","4","5", "6", "7","8", ""]
-    for i in range(1,14):
-        x = 10 +  i * 40
-        plan.create_line(25,x,415,x, fill = theme[1])
-        plan.create_text(20,x, text= hours[i], anchor = "e", fill=  theme[1])
+    # plan.create_line(0,0,14 +  400,0)
+    # for i, d in enumerate(day_lookup):
+    #     x = 25 +  i * 80
+    #     plan.create_text(x + 40,10, text=day_lookup[d],  anchor = "center")
+
+    # hours = ["", "8", "9","10","11", "12", "1", "2", "3","4","5", "6", "7","8", ""]
+    # for i in range(1,14):
+    #     x = 10 +  i * 40
+    #     plan.create_line(25,x,415,x, fill = theme[1])
+    #     plan.create_text(20,x, text= hours[i], anchor = "e", fill=  theme[1])
 
 
-    for course in current_classes:
-        if course["Showing"]:
-            
-            overlap = False
-            for day in course["Days"]:
-                for other in current_classes:
-                    if not other == course and day in other["Days"] and other["Showing"] and ((other["Start"] <= course["Start"] and course["Start"] <= other["End"]) or (course["Start"] <= other["Start"] and other["Start"] <= course["End"])):
-                        overlap = True
+    # for course in current_classes:
+    #     for sec in course:
+    #         if sec["Showing"]:
+                
+    #             overlap = False
+    #             for day in sec["Days"]:
+    #                 for other in current_classes:
+    #                     if not other == sec and day in other["Days"] and other["Showing"] and ((other["Start"] <= sec["Start"] and sec["Start"] <= other["End"]) or (sec["Start"] <= other["Start"] and other["Start"] <= sec["End"])):
+    #                         overlap = True
 
-            for day in course["Days"]:
-                if overlap:
-                    draw_class(day, " ".join(course["Title"].split(" ")[0:2]), course["Start"], color = "red")
-                else:
-                    draw_class(day, " ".join(course["Title"].split(" ")[0:2]), course["Start"], color = "blue")
+    #             for day in sec["Days"]:
+    #                 if overlap:
+    #                     draw_class(day, " ".join(sec["Title"].split(" ")[0:2]), sec["Start"], color = "red")
+    #                 else:
+    #                     draw_class(day, " ".join(sec["Title"].split(" ")[0:2]), sec["Start"], color = "blue")
 
     
     
 
 
 
-def draw_class(day = "", title = "", timeStart = 0, length = 115, color = "blue"):   #Add a block to the calender
-    time = timeStart - 700
-    rem = time % 100
-    y = (time // 100) * 40 + ((rem / 60) * 40) + 10
-    x = 25 +  days.index(day) * 80
-    lengthOff = (length // 100) * 40 + ((length % 100 / 60) * 40)
+# def draw_class(day = "", title = "", timeStart = 0, length = 115, color = "blue"):   #Add a block to the calender
+#     time = timeStart - 700
+#     rem = time % 100
+#     y = (time // 100) * 40 + ((rem / 60) * 40) + 10
+#     x = 25 +  days.index(day) * 80
+#     lengthOff = (length // 100) * 40 + ((length % 100 / 60) * 40)
 
-    # Time formating (from 24:00 TO AM/PM)
-    if ((timeStart + length) % 100) >=  60:
-        length = length - 60 + 100
+#     # Time formating (from 24:00 TO AM/PM)
+#     if ((timeStart + length) % 100) >=  60:
+#         length = length - 60 + 100
 
-    if(timeStart >= 1300):
-        timeStart = timeStart - 1200
+#     if(timeStart >= 1300):
+#         timeStart = timeStart - 1200
 
-    if(timeStart + length >= 1300):
-        length = length - 1200
+#     if(timeStart + length >= 1300):
+#         length = length - 1200
 
-    timeStr = str(timeStart // 100) + ":" 
-    if(timeStart % 100) >=10:
-        timeStr = timeStr + str(timeStart % 100) + " - " + str((timeStart + length) // 100) + ":"
-    else:
-        timeStr = timeStr + "0" + str(timeStart % 100) + " - " + str((timeStart + length) // 100) + ":"
+#     timeStr = str(timeStart // 100) + ":" 
+#     if(timeStart % 100) >=10:
+#         timeStr = timeStr + str(timeStart % 100) + " - " + str((timeStart + length) // 100) + ":"
+#     else:
+#         timeStr = timeStr + "0" + str(timeStart % 100) + " - " + str((timeStart + length) // 100) + ":"
         
-    if(timeStart + length) % 100 >= 10:
-        timeStr = timeStr + str((timeStart + length) % 100 )
-    else:
-        timeStr = timeStr + "0" +  str((timeStart + length) % 100 )
+#     if(timeStart + length) % 100 >= 10:
+#         timeStr = timeStr + str((timeStart + length) % 100 )
+#     else:
+#         timeStr = timeStr + "0" +  str((timeStart + length) % 100 )
 
 
-    create_rounded_square(plan, x + 2,y, 76 , lengthOff, color)
+    # create_rounded_square(plan, x + 2,y, 76 , lengthOff, color)
 
 
-    plan.create_text(x + 4, y + 2, anchor="nw", text = title, fill  = 'white',font=("helvetica",10) )
-    plan.create_text(x + 4, y + 15, anchor="nw", text = timeStr, fill  = 'white',font=("helvetica",8))
+    # plan.create_text(x + 4, y + 2, anchor="nw", text = title, fill  = 'white',font=("helvetica",10) )
+    # plan.create_text(x + 4, y + 15, anchor="nw", text = timeStr, fill  = 'white',font=("helvetica",8))
 
 
-#TODO / FIXME update to aa circle
-def create_rounded_square(canvas, x, y, width, height, color, r = 10):
-    canvas.create_rectangle(x + r,y,x +width - r ,y + height, fill = color,width = 0)   # vertical
-    canvas.create_rectangle(x ,y + r ,x + width,y + height - r, fill = color, width = 0) #horizontal
 
-    canvas.create_aa_circle(x + r, y + r, r , fill = color)  # top left
-    canvas.create_aa_circle(x + width - r, y + r, r, fill = color) # top right
-    canvas.create_aa_circle(x + r, y + height - r, r, fill = color) # bot left
-    canvas.create_aa_circle(x + width - r,  y + height - r, r, fill = color) # bot right
 
 
 # Functions for changing display on pages  
@@ -694,12 +788,13 @@ def change_displayed_courses(startI, endI):
 
 
     for entry in range(startI-1,endI):
-        if entry % 2 ==0:
-            ModernCourseElement(result_courses_pane.interior,loadData[entry], type = "b")
-            
-        else:
-            ModernCourseElement(result_courses_pane.interior,loadData[entry], type = "b")
+        
+        ModernCourseElement(result_courses_pane.interior,loadData[entry], type = "b")
+        
      
+
+
+
 
 
 def next_page():
@@ -733,7 +828,10 @@ def reset_page():
 
 
 
-def check_if_ready(thread):
+
+
+def check_if_ready(thread): #TODO use this thread to also update a loading image in the search canvas??
+    # Function for threading the fetch request to backend website
     if thread.is_alive():
         # not ready yet, run the check again soon
         root.after(200, check_if_ready, thread)
@@ -746,8 +844,10 @@ def check_if_ready(thread):
             for dict in loadData:
                 if not dict["Open"] or dict["Enrolled"] >= dict["Capacity"]:
                     loadData.remove(dict)
-
         reset_page()
+        #somehow get the value of the thread here to set special flag images (i.e. no results/invalid search)   #TODO
+
+
         
 
 
@@ -770,15 +870,16 @@ def fetch(term, dept ="", type = "", courseName = ""):
     courseName = id_box.get()
     desc = keywords_box.get()
 
-  
-
-    # Verify that the combobox values are valid
+    # Verify that the combobox values are valid, and start threaded search
     if term in semester_box.values and dept in subject_box.values and type in course_box.values:
         thread = threading.Thread(target=scrapeHTML, args=[term, dept, type,courseName,desc])
         thread.start()
         root.after(200, check_if_ready, thread)
-
+        
     else:   
+        #TODO fix bg color
+        Label(result_courses_pane.interior, image = invalid_search_img, anchor="center").pack(side=TOP, padx = 180)
+
         tkinter.messagebox.showerror(title="Search Box Error", message="INVALID SEARCH (make sure selected values are valid options)")
         logger.error("INVALID SEARCH (make sure selected values are valid options)")
     
@@ -789,8 +890,10 @@ def fetch(term, dept ="", type = "", courseName = ""):
 def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
     global loadData
 
-     #TODO make an actual element for searching
-    text_tmp = Label(result_courses_pane.interior, text = "Searching for results...", font = ("helvetica", 20)).pack()
+     #TODO fix bg color
+    Label(result_courses_pane.interior, image = searching_img, anchor="center").pack(side=TOP, padx = 180)
+
+
 
     logger.info("Search query: %s, %s, %s, %s, %s",term, dept, type, courseName, desc)
 
@@ -818,10 +921,11 @@ def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
     tables = browser.find_elements(By.XPATH, '//table[contains(@cellpadding, "3")]')
     
     
-    end_time = time.localtime()
+    end_time = time.localtime() #FIXME check to make sure this actually catches timeout errors
     diff = (time.mktime(end_time) - time.mktime(start_time)) 
     if(diff >= sleepTime and len(tables) == 0):     # Check for timeout issues
         logger.error("Timeout error occured")
+
         tkinter.messagebox.showerror(title="Search TImeout Error", message="Timeout Error Occured. Please make sure you are connected to a stable internet connection, or increase the timeout duration.")
         return None
 
@@ -833,262 +937,158 @@ def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
     else:   # Parse and display the gathered data
         logger.info("%d results found ", len(tables))
     
-        loadData.clear()
+        loadData.clear()    # Discard previous search results
 
-        try:
-            browser.implicitly_wait(0.001)
+    
+        browser.implicitly_wait(0.001)  #Change action time to be fast
+        root = lxml.html.fromstring(browser.page_source)
 
-            root = lxml.html.fromstring(browser.page_source)
+        seen_classes = [] # Record which 'parent' courses we have seen so far
+
+        for table in root.xpath('//table[contains(@cellpadding, "3")]'): #FIXME make this parsing better
+            try: #Get the title for the class
+                course_title = str(table.xpath(".//span[contains(@id,'lblCNum')]/text()")[0]).split(" ")
+                course_title[1] = course_title[1][:3]
+                course_title = " ".join(course_title)   #Formatting magic to get just the department and code
 
 
-            seen_classes = []
+
+                if course_title in seen_classes:
+                    # Find the overall course
+                    parent = list(filter(lambda course: course_title in course['Title'] , loadData))[0]
+                    # Add a new section to the  parent
+                    parent["Sections"].append(create_section(table))
+
             
-            for table in root.xpath('//table[contains(@cellpadding, "3")]'): #FIXME make this parsing better
-                # tableID = "/html/body/form/div[3]/table[1]/tbody/tr[2]/td[2]/div/table/tbody/tr/td[3]/table[" + str(i) + "]/tbody/"
-                # for x in range(1, 10,2 ): #len(tables)
+   
+                    
 
-                try: #Get the title for the class
-                    title2= str(table.xpath(".//span[contains(@id,'lblCNum')]/text()")[0]).split(" ")
-                    title2[1] = title2[1][:3]
-                    title2 = " ".join(title2)
-                    # print(title2)
+                else:   # We haven't seen the parent course yet
+                    seen_classes.append(course_title)
 
+                    dict = {"Title": "",
+                        "Term": "",
+                        "Credit": "",
+                        "Sections": [],
 
-                    if title2 in seen_classes:
+                        "Description": "",
+                        "Restrictions": [],
+                        "Offered": "",
+                        "Showing": True}
 
-                        #print(parent["Sections"])
-
-                        # Find the overall course
-                        parent = list(filter(lambda course: title2 in course['Title'] , loadData))[0]
-
-                        section = {"Title":"",
-                                   "Type":"",
-                                   "Instructor":"",
-                                   "Days":"",
-                                   "Time":"",
-                                   "Room":"",
-                                   "Enrolled":"",
-                                   "Cap":"",
-                                   "Showing": False}
-
-
-                        try:
-                            section["Title"] = str(table.xpath(".//span[contains(@id,'lblCNum')]/text()")[0])
-                        except:
-                            pass
-
-                        #TODO add type
+                    try:
+                        dict["Title"] = str(table.xpath(".//span[contains(@id,'lblCNum')]/text()")[0]) + " " + str(table.xpath(".//span[contains(@id,'lblTitle')]/text()")[0])
                         
-                        try:
-                            section["Instructor"] =  str(table.xpath(".//span[contains(@id,'lblInstructors')]/text()")[0])
-                        except:
-                            pass
+                    except Exception as e:
+                        print(e)
+                        pass
+                    
 
-                        try:    
-                            section["Days"] =  str(table.xpath(".//span[contains(@id,'lblDay')]/text()")[0])
-                        except:
-                            pass
-
-                        #FIXME add time conversion and day conversion here
-                        try:
-                            dict["Time"] = int(table.xpath(".//span[contains(@id,'lblStartTime')]/text()")[0])
-                        except:
-                            pass
-
-                        try:
-                            section["Room"] =  str(table.xpath(".//span[contains(@id,'lblBuilding')]/text()")[0])
-                        except:
-                            pass
-
-
-                        try:
-                            section["Cap"] =table.xpath(".//span[contains(@id,'lblSectionCap')]/text()")[0]
-                        except:
-                            pass
-
-                        try:
-                            section["Enrolled"] =  table.xpath(".//span[contains(@id,'lblSectionEnroll')]/text()")[0]
-                        except:
-                            pass
-
-
-                        parent["Sections"].append(section)
-
-              
+                    try:
+                        dict["Term"] =  str(table.xpath(".//span[contains(@id,'lblTerm')]/text()")[0])
                         
-                        print(parent)
-                     
-
-                    else:
-                        seen_classes.append(title2)
-
-
-                        dict = {"Title": "",
-                            # "Days": "",
-                            "Term": "",
-                            "Credit": "",
-                            "Sections": [],
-                            
-                                # "Open": False,
-                                # "Start": "",
-                                # "End": "",
-                                # "Room": "",
-                                # "Capacity": "",
-                                # "Enrolled": "",
-                                # "Instructor": ""
-                                # ,
-                            "Description": "",
-                            "Restrictions": [],
-                            "Offered": "",
-                            "Showing": True}
-
-                        try:
-                            dict["Title"] = str(table.xpath(".//span[contains(@id,'lblCNum')]/text()")[0]) + " " + str(table.xpath(".//span[contains(@id,'lblTitle')]/text()")[0])
-                            
-                        except Exception as e:
-                            print(e)
-                            pass
-                        
-                        # try:
-                        #     dict["Days"] =  str(table.xpath(".//span[contains(@id,'lblDay')]/text()")[0])
-                        # except:
-                        #     pass
-
-                        try:
-                            dict["Term"] =  str(table.xpath(".//span[contains(@id,'lblTerm')]/text()")[0])
-                            
-                        except:
-                            pass
-
-                        try:
-                            dict["Credit"] = str(table.xpath(".//span[contains(@id,'lblCredits')]/text()")[0])   
-                            
-                        except:
-                            pass
-
-                        # try:  #FIXME do I need this??
-                        #     dict["Open"] = "Open" == str(table.xpath(".//span[contains(@id,'lblStatus')]/text()")[0])
-                        # except:
-                        #     pass
-
-                        # try:
-                        #     dict["Start"] = int(table.xpath(".//span[contains(@id,'lblStartTime')]/text()")[0])
-                        # except:
-                        #     pass
-
-                        # try:
-                        #     dict["End"] =  int(table.xpath(".//span[contains(@id,'lblEndTime')]/text()")[0])
-                        # except:
-                        #     pass
-
-                        # try:
-                        #     dict["Room"] =  str(table.xpath(".//span[contains(@id,'lblBuilding')]/text()")[0])
-                        # except:
-                        #     pass
-
-                        # try:
-                        #     dict["Capacity"] =table.xpath(".//span[contains(@id,'lblSectionCap')]/text()")[0]
-                        # except:
-                        #     pass
-
-                        # try:
-                        #     dict["Enrolled"] =  table.xpath(".//span[contains(@id,'lblSectionEnroll')]/text()")[0]
-                        # except:
-                        #     pass
-
-                        # try:
-                        #     dict["Instructor"] =  str(table.xpath(".//span[contains(@id,'lblInstructors')]/text()")[0])
-                        # except:
-                        #     pass
-
-                        try:    #TODO separate restrictions from this section(idk if I still need this as the text length currently captures restrictions)
-
-                            for children in table.xpath(".//span[contains(@id,'lblDesc')]"):
-                                for x in children.itertext():
-                                    dict["Description"] += x + "\n"
-                        except:
-                            pass
-
-                        try:
-                            dict["Offered"] = table.xpath(".//span[contains(@id,'lblOffered')]/text()")[0].split(" ")
-
-                            if "" in dict["Offered"]:
-                                dict["Offered"].remove("")
-                        except:
-                            pass
-                        
-                        section = {"Title":"",
-                                   "Type":"",
-                                   "Instructor":"",
-                                   "Days":"",
-                                   "Time":"",
-                                   "Room":"",
-                                   "Enrolled":"",
-                                   "Cap":"",
-                                   "Showing": False}
-
-
-                        try:
-                            section["Title"] = str(table.xpath(".//span[contains(@id,'lblCNum')]/text()")[0])
-                        except:
-                            pass
-
-                        #TODO add type
-                        
-                        try:
-                            section["Instructor"] =  str(table.xpath(".//span[contains(@id,'lblInstructors')]/text()")[0])
-                        except:
-                            pass
-
-                        try:    
-                            section["Days"] =  str(table.xpath(".//span[contains(@id,'lblDay')]/text()")[0])
-                        except:
-                            pass
-
-                        #FIXME add time conversion and day conversion here
-                        try:
-                            dict["Time"] = int(table.xpath(".//span[contains(@id,'lblStartTime')]/text()")[0])
-                        except:
-                            pass
-
-                        try:
-                            section["Room"] =  str(table.xpath(".//span[contains(@id,'lblBuilding')]/text()")[0])
-                        except:
-                            pass
-
-
-                        try:
-                            section["Cap"] =table.xpath(".//span[contains(@id,'lblSectionCap')]/text()")[0]
-                        except:
-                            pass
-
-                        try:
-                            section["Enrolled"] =  table.xpath(".//span[contains(@id,'lblSectionEnroll')]/text()")[0]
-                        except:
-                            pass
-
-
-                        dict["Sections"].append(section)
-
-                        loadData.append(dict)
-
-                        # create a new dictionary for the class
+                    except:
                         pass
 
-                except Exception as e:
-                    print(e)
-                    pass
+                    try:
+                        dict["Credit"] = str(table.xpath(".//span[contains(@id,'lblCredits')]/text()")[0])   
+                        
+                    except:
+                        pass
+
+                    try:    #TODO separate restrictions from this section(idk if I still need this as the text length currently captures restrictions)
+
+                        for children in table.xpath(".//span[contains(@id,'lblDesc')]"):
+                            for x in children.itertext():
+                                dict["Description"] += x + "\n"
+                    except:
+                        pass
+
+                    try:
+                        dict["Offered"] = table.xpath(".//span[contains(@id,'lblOffered')]/text()")[0].split(" ")
+
+                        if "" in dict["Offered"]:
+                            dict["Offered"].remove("")
+                    except:
+                        pass
+                    
+                    
+                    dict["Sections"].append(create_section(table))
+                    loadData.append(dict)
 
 
-                
-                
-
-        except Exception as e: 
-            logger.error("Error reading / parsing data")
-            logger.error("%s", e)
+            except Exception as e: 
+                logger.error("Error reading / parsing data")
+                logger.error("%s", e)
             
         browser.implicitly_wait(sleepTime)
-        return 0    #TODO fix this return?
+        return None    #TODO fix this return?
+    
+
+
+
+
+def create_section(table):
+    section = {"Title":"",
+                "Type":"",
+                "Instructor":"",
+                "Days":"",
+                "Time":0,
+                "End":0,
+                "Room":"",
+                "Enrolled":"",
+                "Cap":"",
+                "Showing": False}
+
+
+    try:
+        section["Title"] = str(table.xpath(".//span[contains(@id,'lblCNum')]/text()")[0])
+    except:
+        pass
+
+    #TODO add type
+    
+    try:
+        section["Instructor"] =  str(table.xpath(".//span[contains(@id,'lblInstructors')]/text()")[0])
+    except:
+        pass
+
+    try:    
+        section["Days"] =  str(table.xpath(".//span[contains(@id,'lblDay')]/text()")[0])
+    except:
+        pass
+
+    #FIXME add time conversion and day conversion here
+    try:
+        section["Time"] = int(table.xpath(".//span[contains(@id,'lblStartTime')]/text()")[0])
+    except:
+        pass
+
+    try:
+        section["End"] =  int(table.xpath(".//span[contains(@id,'lblEndTime')]/text()")[0])
+    except:
+        pass
+
+    try:
+        section["Room"] =  str(table.xpath(".//span[contains(@id,'lblBuilding')]/text()")[0])
+    except:
+        pass
+
+
+    try:
+        section["Cap"] =table.xpath(".//span[contains(@id,'lblSectionCap')]/text()")[0]
+    except:
+        pass
+
+    try:
+        section["Enrolled"] =  table.xpath(".//span[contains(@id,'lblSectionEnroll')]/text()")[0]
+    except:
+        pass
+
+
+    return section
+
+
 
 
 
@@ -1186,6 +1186,17 @@ req_down  = PhotoImage(
 tab_body  = PhotoImage(
     file=relative_to_assets("folder_body.png"))
 
+prev_btn_img  = PhotoImage(
+    file=relative_to_assets("last_btn.png"))
+next_btn_img  = PhotoImage(
+    file=relative_to_assets("next_btn.png"))
+
+searching_img  = PhotoImage(
+    file=relative_to_assets("searching_img.png"))
+invalid_search_img  = PhotoImage(
+    file=relative_to_assets("invalid_search_img.png"))
+
+
 #Photo images for search widget
 bg_img = PhotoImage(file=relative_to_assets("search_bg.png"))
 search_btn_img = PhotoImage(file=relative_to_assets("search_btn.png"))
@@ -1199,13 +1210,15 @@ calander_frame = Frame(root, bd = 2, relief="solid")
 header= customtkinter.CTkCanvas(calander_frame, width = 420, height = 35)
 header.pack(pady=(0,0))
 
-plan= customtkinter.CTkCanvas(calander_frame, width = 420, height = 580)
-plan.pack( anchor = 'nw', pady=(0,0))
+calender_component = CalenderElement(calander_frame)
+# plan= customtkinter.CTkCanvas(calander_frame, width = 420, height = 580)
+# plan.pack( anchor = 'nw', pady=(0,0))
 
 
 calander_frame.pack(side=RIGHT, anchor = "n", pady = 10, padx = 10)
 
-draw_cal()
+# draw_cal()
+calender_component.draw()
 draw_header()
 
 
@@ -1275,9 +1288,6 @@ class CustomTabview(Frame):
 
         
 
-
-
-
 notebook = CustomTabview(root, height = 600, width = 400)
 notebook.add_tab("search", width = 1000,height = 1000, btn_imgs=(search_up,search_down))
 notebook.add_tab("results",width = 1000,height = 1000, btn_imgs=(res_up, res_down))
@@ -1285,7 +1295,7 @@ notebook.add_tab("schedual",width = 1000,height = 1000,btn_imgs=(sch_up, sch_dow
 notebook.add_tab("requirements",width = 1000,height = 1000, btn_imgs=(req_up, req_down))
 
 
-notebook.pack()
+notebook.pack(padx=10)
 
 
 
@@ -1304,8 +1314,6 @@ search_canvas = notebook.get("search")
 
 
 search_canvas.create_image(102,59, anchor = "nw", image= bg_img)
-
-
 
 
 # 1st long bar
@@ -1332,9 +1340,6 @@ vals.insert(0,"")
 course_box = CustomDropDown(search_canvas,text = "Course Type:", values = vals, width = 286, img = search_long_img, text_width = 25)
 course_box.place(in_=search_canvas, x=123,y=237)
 
-
-
-
 # 1st short bar
 id_box = CustomDropDown(search_canvas,text = "Course ID:", values = None, width = 146, img = search_short_img, text_width = 12, list_width=21)
 id_box.place(in_=search_canvas, x=429,y=85)
@@ -1350,9 +1355,6 @@ check_btn = Checkbutton(search_canvas,bd=0,highlightthickness=0, background="#72
 check_btn.place(in_=search_canvas, x = 361,y =310)
 search_canvas.create_text(386.0,311.0,anchor="nw",text="Hide unavailable classes",fill="#FFFFFF",font=("IstokWeb Bold", 16 * -1))
 
-
-
-
 #Keep lift order so widgets don't obscure each other
 semester_box.lift(aboveThis=subject_box)
 semester_box.lift(aboveThis=course_box)
@@ -1362,19 +1364,9 @@ subject_box.lift(aboveThis=check_btn)
 course_box.lift(aboveThis=check_btn)
 id_box.lift(aboveThis=keywords_box)
 
-
-
-
-
-
-
-
 # Search button for submitting form
 search_btn = Button(search_canvas, image=search_btn_img,borderwidth=0,highlightthickness=0,command=lambda :fetch(semester_box.get(), subject_box.get(), course_box.get()),relief="flat")
 search_btn.place(in_=search_canvas, x=447.0,y=234.0,width=103.0,height=60.0)
-
-
-
 
 
 
@@ -1382,26 +1374,18 @@ search_btn.place(in_=search_canvas, x=447.0,y=234.0,width=103.0,height=60.0)
 
 results = notebook.get("results")
 
+scroll_next = Button(results, image = next_btn_img, command=next_page, anchor="ne", bd = 0, highlightthickness=0)
+notebook.add_element(scroll_next, "results", 645, 500)
 
 
-scroll_next = Button(results, text="Next", command=next_page, anchor="ne",)
-notebook.add_element(scroll_next, "results", 680, 20)
+scroll_prev = Button(results, image=prev_btn_img, command=prev_page, anchor="nw", bd = 0, highlightthickness=0)
+notebook.add_element(scroll_prev, "results", 25, 500)
 
-
-scroll_prev = Button(results, text="Prev", command=prev_page, anchor="nw")
-notebook.add_element(scroll_prev, "results", 20, 20)
-
-scroll_text = Label(results, text="Showing " + str(indxS) + "-" + str(indxE) + " of " + str(numResults), font=("Helvetica 10 bold"))
-notebook.add_element(scroll_text, "results", 340, 20, anchor="n")
-
+scroll_text = Label(results, text="Showing " + str(indxS) + "-" + str(indxE) + " of " + str(numResults), font=("IstokWeb", 14 * -1, "bold"), bg="#FFECDC")
+notebook.add_element(scroll_text, "results", 335, 500, anchor="center")
 
 result_courses_pane = VerticalScrolledFrame(results)
-
-
-notebook.add_element(result_courses_pane, "results", 20, 50, anchor="nw")
-
-
-
+notebook.add_element(result_courses_pane, "results", 20, 10, anchor="nw")
 
 
 #===================== Current Courses Component =====================#
@@ -1420,7 +1404,7 @@ for entry in range(0,len(current_classes)):
         x.toggle_show()
         x.toggle_show()
 
-
+calender_component.draw()
 
 logger.info("Starting GUI Program")
 root.mainloop()
