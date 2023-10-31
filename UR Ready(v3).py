@@ -36,17 +36,17 @@ logger.addHandler(fh)
 
 # TODO make sure that any classes that are added are for the same semester
 
-#Error with hide unavailable classses missing a few classes that still show up as red and CLOSED later on
+#Error with hide unavailable classses missing a few classes that still show up as red and CLOSED later on (not sure if still true for V3.0)
 
 # Add a check that if someone signs up for a workshop, they also sign up for the lecture (dropdown menu for workshop classes from main lecture class?)
 
 
 # Known errors: FUNCTION REDUNDANCY, errors with connecting to CDCS & exiting connection on program close, 
 #  scroll pane doesn't work unless over the bar (scrolling on the
-# individual frames instead), setting scroll bar location after a search,  error when scraping credits that 
+# individual frames instead),   error when scraping credits that 
 # "Wrokshop" isn't recognized or set up correctly in the scraper
 
-#FIXME Error with hide on dropdown menu not changing bg color untill it is hidden again
+
 
 
 # TODO for overlapping classes, add a yellow triangle in the bottom right with the number of classes in that space
@@ -66,7 +66,7 @@ day_lookup = {"U":"Sunday", "M":"Monday", "T":"Tuesday", "W":"Wednesday", "R":"T
 
 # Create something that merges the looks of the dropdown course menues with scrolable frames that act like comboboxes
 class CustomDropDown(Frame):
-    def __init__(self, parent,text,img, width,text_width, values,list_width=38, *args, **kw):
+    def __init__(self, parent,text,img, width,text_width, values, list_width=44, *args, **kw):
         Frame.__init__(self, parent, *args, **kw)
         self.text = text
         self.values = values
@@ -94,10 +94,20 @@ class CustomDropDown(Frame):
 
         # Bind events
         self.entry.bind('<Button-1>', self.clear_text)
+        self.entry.bind('<FocusOut>', self.reset)
+        
 
         if self.values != None:
             self.entry.bind('<KeyRelease>', self.manage_input)
             self.list.bind('<Button-1>', self.select_option)
+
+
+    def reset(self, event):
+        if not root.focus_get() is self.list:
+            if self.entry.get() =="":
+                self.entry.insert(0, self.text) 
+            if self.values != None:
+                self.scroll_frame.forget()
 
 
     def clear_text(self, event):
@@ -105,15 +115,15 @@ class CustomDropDown(Frame):
         if self.entry.get() == self.text:
             self.entry.delete(0,len(self.text)+ 1)
 
+        if self.values != None:
             for i in range(len(self.values)):
                 self.list.insert(self.list.size(), self.values[i])
-
-        if self.values != None:
             self.scroll_frame.pack(side=BOTTOM)
+        
 
 
     def manage_input(self, event):
-        # Used to change what is shown in hte drop down list
+        # Used to change what is shown in the drop down list
         self.list.config(height= 11)
         value = self.entry.get()
         self.list.delete(0, self.list.size())
@@ -163,7 +173,6 @@ class ModernCourseElement(Frame):
     def __init__(self, parent,dict = None, type = "g",mode=TRUE , *args, **kw):
         Frame.__init__(self, parent, *args, **kw)
 
-       
         self.dict = dict
         self.type = type
         self.mode = mode
@@ -252,7 +261,7 @@ class ModernCourseElement(Frame):
 
         title = self.dict["Title"].split(" ")
         title[1] = title[1][:3]
-        self.canvas.create_text(14.0,9.0,anchor="nw",text=title,fill="#FFFFFF",font=("IstokWeb Bold", 16 * -1, "bold"))
+        self.canvas.create_text(14.0,9.0,anchor="nw",text=title ,fill="#FFFFFF",font=("IstokWeb Bold", 16 * -1, "bold"))
 
         self.canvas.create_text(20.0,30.0,anchor="nw",text=self.dict["Credit"] + " credits",fill="#FFFFFF",font=("IstokWeb Bold", 12 * -1, "bold"))
 
@@ -274,10 +283,17 @@ class ModernCourseElement(Frame):
         # l = Label(section_frame, text = f'{title:<14}{course_type:<20}{instructor:<30}{days:<20}{str(time):<12}{room:<20}{enrolled:<20}', bg=color,font=("IstokWeb Bold", 12 * -1, "bold"))
 
         section_frame.create_text(5,5, text=sec["Title"], anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
-        # section_frame.create_text(70,5, text=sec["Type"], anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
-        section_frame.create_text(140,5, text=sec["Instructor"], anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
-        section_frame.create_text(255,5, text=sec["Days"] + " : " + time_to_str(sec["Time"]) + "-" + time_to_str(sec["End"]), anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
-        section_frame.create_text(420,5, text=sec["Room"], anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
+
+
+        if sec["Open"]:
+            section_frame.create_text(80,5, text="Open", anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
+        else:
+            section_frame.create_text(80,5, text="Closed", anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"), fill = "red")
+
+
+        section_frame.create_text(130,5, text=sec["Instructor"], anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
+        section_frame.create_text(260,5, text=sec["Days"] + " : " + time_to_str(sec["Time"]) + "-" + time_to_str(sec["End"]), anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
+        section_frame.create_text(380,5, text=sec["Room"], anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
         section_frame.create_text(550,5, text= str(sec["Enrolled"]) + "/" + str(sec["Cap"]) +" Enrolled", anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
 
 
@@ -350,7 +366,7 @@ class ModernCourseElement(Frame):
         self.draw_banner()
 
         # Title
-        self.canvas.create_text(7.0,66.0,anchor="nw",text=self.dict["Title"],fill="#000000",font=("IstokWeb", 14 * -1, "bold"))
+        self.canvas.create_text(7.0,66.0,anchor="nw",text=self.dict["Title"] + " (" + self.dict["Term"] + ")",fill="#000000",font=("IstokWeb", 14 * -1, "bold"))
 
         
         # Semesters offered
@@ -358,7 +374,7 @@ class ModernCourseElement(Frame):
         self.canvas.create_text(57.0,89.0,anchor="nw",text=(", ".join(self.dict["Offered"])),fill="#000000",font=("IstokWeb Bold", 12 * -1))
 
 
-        self.canvas.create_window(7.0,125.0, window=self.section_list, width = 670, anchor="nw")
+        self.canvas.create_window(7.0,115.0, window=self.section_list, width = 670, anchor="nw")
 
         # Class description
         self.canvas.create_text(7.0,125.0 + 25 * self.num_sections,anchor="nw",text="Description: ",fill="#000000",font=("IstokWeb Bold", 12 * -1,'bold'))
@@ -476,14 +492,14 @@ class ModernCourseElement(Frame):
 
 class VerticalScrolledFrame(ttk.Frame):
     def __init__(self, parent, *args, **kw):
-        ttk.Frame.__init__(self, parent, *args, **kw)
+        ttk.Frame.__init__(self, parent,*args, **kw)
 
  
         # Create a canvas object and a vertical scrollbar for scrolling it.
         vscrollbar = ttk.Scrollbar(self, orient=VERTICAL)
         vscrollbar.pack(fill=Y, side=RIGHT, expand=FALSE)
         self.canvas = Canvas(self, bd=0, highlightthickness=0, bg='#FFECDC',
-                                width = 690, height = 450,
+                                width = 690, height = 470,
                                 yscrollcommand=vscrollbar.set)
         self.canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
         vscrollbar.config(command = self.canvas.yview)
@@ -493,7 +509,7 @@ class VerticalScrolledFrame(ttk.Frame):
         self.canvas.yview_moveto(0)
  
         # Create a frame inside the canvas which will be scrolled with it.
-        self.interior = ttk.Frame(self.canvas, width = 680)
+        self.interior = Frame(self.canvas, width = 680,bg= "#FFECDC" )
         self.interior.bind('<Configure>', self._configure_interior)   #FIXME
         # self.canvas.bind('<Configure>', self._configure_canvas)
         self.interior_id = self.canvas.create_window(0, 0, window=self.interior, anchor=NW)
@@ -778,8 +794,8 @@ def check_if_ready(thread): #TODO use this thread to also update a loading image
     else:
         logger.info("Scraping Thread has terminated, updating page")
 
-        if hide_unavailable_var.get() == 1:
-            logger.info("Removing unavailable classes")
+        if hide_unavailable_var.get()==1:
+            logger.info("Removed unavailable classes")
 
             
         reset_page()
@@ -829,7 +845,7 @@ def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
     global loadData
 
      #TODO fix bg color
-    Label(result_courses_pane.interior, image = searching_img, anchor="center").pack(side=TOP, padx = 140)
+    Label(result_courses_pane.interior, image = searching_img, anchor="center", bg = "#FFECDC").pack(side=TOP, padx = 200)
 
 
 
@@ -1030,7 +1046,11 @@ def create_section(table, parent):
     except:
         pass
 
-    if not (not section["Open"] or section["Enrolled"] >= section["Cap"]):  #TODO do I want this behavior?
+    if hide_unavailable_var.get() == 1:
+        
+        if not (not section["Open"] or section["Enrolled"] >= section["Cap"]):  #TODO do I want this behavior?
+            parent.append(section)
+    else:
         parent.append(section)
 
 
@@ -1346,11 +1366,11 @@ search_btn.place(in_=search_canvas, x=447.0,y=234.0,width=103.0,height=60.0)
 results = notebook.get("results")
 
 scroll_next = Button(results, image = next_btn_img, command=next_page, anchor="ne", bd = 0, highlightthickness=0)
-notebook.add_element(scroll_next, "results", 645, 500)
+notebook.add_element(scroll_next, "results", 645, 490)
 
 
 scroll_prev = Button(results, image=prev_btn_img, command=prev_page, anchor="nw", bd = 0, highlightthickness=0)
-notebook.add_element(scroll_prev, "results", 25, 500)
+notebook.add_element(scroll_prev, "results", 25, 490)
 
 scroll_text = Label(results, text="Showing " + str(indxS) + "-" + str(indxE) + " of " + str(numResults), font=("IstokWeb", 14 * -1, "bold"), bg="#FFECDC")
 notebook.add_element(scroll_text, "results", 335, 500, anchor="center")
@@ -1414,6 +1434,8 @@ notebook.add_element(timeout_box, "info", 10, 500, anchor="nw")
 notebook.add_element(Label(info, text=" Timeout Delay (Seconds)", font=("IstokWeb", 14 * -1, "bold"), bg="#FFECDC"), "info", 35, 500, anchor="nw")
 
 logger.info("Starting GUI Program")
+
+root.bind_all("<Button-1>", lambda event: event.widget.focus_set())
 root.mainloop()
 
 
