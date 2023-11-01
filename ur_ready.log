@@ -3,3 +3,18 @@
 2023-10-31 14:09:04,584 - Getting Combobox Values
 2023-10-31 14:09:05,112 - Starting GUI Program
 2023-10-31 14:09:13,232 - Closing Program and saving chosen classes
+2023-10-31 17:18:38,821 - Searching for webpage
+2023-10-31 17:18:43,805 - Creating GUI
+2023-10-31 17:18:44,021 - Getting Combobox Values
+2023-10-31 17:18:44,710 - Starting GUI Program
+2023-10-31 17:18:57,250 - Search query: Fall 2023, CSC - Computer Science, , , 
+2023-10-31 17:18:57,511 - Connected to CDCS Webpage
+2023-10-31 17:18:58,261 - Form submitted to CDCS
+2023-10-31 17:19:06,184 - 284 results found 
+2023-10-31 17:19:06,785 - Scraping Thread has terminated, updating page
+2023-10-31 17:19:24,242 - Closing Program and saving chosen classes
+2023-10-31 22:11:23,781 - Searching for webpage
+2023-10-31 22:11:28,652 - Creating GUI
+2023-10-31 22:11:28,799 - Getting Combobox Values
+2023-10-31 22:11:29,219 - Starting GUI Program
+2023-10-31 22:11:33,467 - Closing Program and saving chosen classes

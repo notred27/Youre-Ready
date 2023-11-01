@@ -5,3 +5,5 @@ figd_6L-J76Ei93ff0bIuM7dFjnG8FJMZ93uFdfapHEq4
 
 
 Tkinter-Designer ->gui -> python gui.py
+
+python pyinstaller urready.py --name UR_Ready
