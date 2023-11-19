@@ -687,3 +687,20 @@ DevTools listening on ws://127.0.0.1:53509/devtools/browser/76cfe9d1-6a8b-40cc-8
 1700376495212	addons.xpi	ERROR	System addon update list error SyntaxError: XMLHttpRequest.open: 'http://%(server)s/dummy-system-addons.xml' is not a valid URL.
 1700376568019	Marionette	INFO	Stopped listening on port 53519
 Dynamically enable window occlusion 1
+1700416754219	geckodriver	INFO	Listening on 127.0.0.1:50672
+1700416757319	mozrunner::runner	INFO	Running command: "C:\\Program Files\\Mozilla Firefox\\firefox.exe" "--marionette" "--headless" "--remote-debugging-port" "506 ... 3" "--remote-allow-hosts" "localhost" "-no-remote" "-profile" "C:\\Users\\miker\\AppData\\Local\\Temp\\rust_mozprofileTLTZBY"
+*** You are running in headless mode.
+console.warn: services.settings: Ignoring preference override of remote settings server
+console.warn: services.settings: Allow by setting MOZ_REMOTE_SETTINGS_DEVTOOLS=1 in the environment
+1700416757564	Marionette	INFO	Marionette enabled
+Dynamically enable window occlusion 0
+1700416757620	Marionette	INFO	Listening on port 50680
+WebDriver BiDi listening on ws://127.0.0.1:50673
+Read port: 50680
+1700416757773	RemoteAgent	WARN	TLS certificate errors will be ignored for this session
+[GFX1-]: RenderCompositorSWGL failed mapping default framebuffer, no dt
+console.error: ({})
+DevTools listening on ws://127.0.0.1:50673/devtools/browser/707217e0-9cc4-4dab-a43b-e45a373aa1ca
+1700416788033	addons.xpi	ERROR	System addon update list error SyntaxError: XMLHttpRequest.open: 'http://%(server)s/dummy-system-addons.xml' is not a valid URL.
+1700416888775	Marionette	INFO	Stopped listening on port 50680
+Dynamically enable window occlusion 1
