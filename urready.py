@@ -9,15 +9,16 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 import threading
 import lxml.html
-from pathlib import Path
+
 import logging
 
 
 
+from PIL import ImageGrab
+
 logger = logging.getLogger('UR_READY')
 logger.setLevel(logging.DEBUG)
 
-# fh = logging.StreamHandler()
 fh = logging.FileHandler('ur_ready.log')
 fh_formatter = logging.Formatter('%(asctime)s - %(message)s')
 fh.setFormatter(fh_formatter)
@@ -26,26 +27,20 @@ logger.addHandler(fh)
 
 
 #TODO when selecting a term, check if a json file for that semester already exists, and if so load it. If it doesn't create a new json file and load it.
-#
 
 #TODO: fix minor errors,  restrictions scraping (addig bold to this text), 
-#   no results are found, 
+#   no results are found (Under CDCS a timeout will occur)
 
 
 # TODO make sure that any classes that are added are for the same semester
 
-#Error with hide unavailable classses missing a few classes that still show up as red and CLOSED later on (not sure if still true for V3.0)
-
 # Add a check that if someone signs up for a workshop, they also sign up for the lecture (dropdown menu for workshop classes from main lecture class?)
 
 
-# Known errors: FUNCTION REDUNDANCY, errors with connecting to CDCS & exiting connection on program close, 
-#  scroll pane doesn't work unless over the bar (scrolling on the
-# individual frames instead),   error when scraping credits that 
-# "Wrokshop" isn't recognized or set up correctly in the scraper
+# FIXME scroll pane doesn't work unless over the bar (scrolling on the individual frames instead),   
 
 
-
+# TODO add OS dialogue pop-up to determine where to save schedule to
 
 # TODO for overlapping classes, add a yellow triangle in the bottom right with the number of classes in that space
 # For writing classes, workshops, recitations, add something to make it stand out on the calender?
@@ -53,12 +48,55 @@ logger.addHandler(fh)
 # FIXME when scraping classes, remove "" for offered (when course isnt offered during a semester)
 
 
-
+# TODO fix paragraph formatting in more info section
 
 
 
 
 day_lookup = {"U":"Sunday", "M":"Monday", "T":"Tuesday", "W":"Wednesday", "R":"Thursday", "F":"Friday", "S":"Saturday"}
+
+theme = ["#6B3074", "#7268A6", "#8E8D8A", "#D8C3A5", "#EAE7DC"]
+
+loadData = []
+
+current_classes = json.loads(open("saved_classes.json", "r").read())
+
+
+# Indexes for shown results
+indxS= 1
+indxE = 0
+numResults = len(loadData)
+
+sleepTime = 20   #For timeout checks
+
+
+# Print initial time
+logger.info("Searching for webpage")
+
+# Set up browser connection
+options = Options()
+options.add_argument("--headless")
+browser = webdriver.Firefox(options=options)
+browser.implicitly_wait(sleepTime)
+
+
+
+def time_to_str(time):
+    if type(time) is int:
+        ret = time
+        if ret > 1300:
+            ret -= 1200
+
+        ret = str(ret)[:-2] + ":" + str(ret)[-2:]
+
+        if time >= 1200:
+            ret += "pm"
+        else:
+            ret += "am"
+        return ret
+    return ""
+
+
 
 
 
@@ -93,7 +131,6 @@ class CustomDropDown(Frame):
         # Bind events
         self.entry.bind('<Button-1>', self.clear_text)
         self.entry.bind('<FocusOut>', self.reset)
-        
 
         if self.values != None:
             self.entry.bind('<KeyRelease>', self.manage_input)
@@ -104,12 +141,12 @@ class CustomDropDown(Frame):
         if not root.focus_get() is self.list:
             if self.entry.get() =="":
                 self.entry.insert(0, self.text) 
-            if self.values != None:
-                self.scroll_frame.forget()
+            self.scroll_frame.forget()
+        
 
 
     def clear_text(self, event):
-        # Used to clear the starting text in th entry and toggle the drop down list
+        # Used to clear the starting text in the entry and toggle the drop down list
         if self.entry.get() == self.text:
             self.entry.delete(0,len(self.text)+ 1)
 
@@ -131,7 +168,7 @@ class CustomDropDown(Frame):
                 self.list.insert(self.list.size(), self.values[i])
             
 
-        else:   #TODO try to condense following lines
+        else:
             data = []
             for item in self.values:
                 if value.lower() in item.lower():
@@ -143,27 +180,26 @@ class CustomDropDown(Frame):
 
             if len(data) < 11:
                 self.list.config(height= len(data))
-            
 
 
-    def select_option(self, event): #FIXME Error with different widgets getting input from each other??
+    def select_option(self, event):
         # Used to select a value from the drop down list
-        try:    #FIXME edge case when first selescting a value
-            if self.entry.get() != self.list.selection_get():
-                self.entry.delete(0,len(self.entry.get()))
-                self.entry.insert(0, self.list.selection_get())
-                self.list.selection_clear(0, len(self.values))
-                self.scroll_frame.forget()
+        try:  
+            print(self.entry.get(), self.list.selection_get())
+            if self.list.selection_get() in self.values: 
+                if self.entry.get() != self.list.selection_get():
+                    self.entry.delete(0,len(self.entry.get()))
+                    self.entry.insert(0, self.list.selection_get())
+                    self.list.selection_clear(0, len(self.values))
+                    self.scroll_frame.forget()
         except:
             pass
        
     def get(self):
         # Get the current entry text
-
         if self.entry.get() == self.text:
-            return "" #Make sure starting text isn't passed forward
+            return "" 
         return self.entry.get()
-
 
 
 
@@ -211,21 +247,20 @@ class ModernCourseElement(Frame):
 
         self.section_list = Frame(self.canvas, bg = self.bg_color, pady=0, borderwidth=2,bd = 2)
                 
-        self.btn_info = Button(self.canvas,image=self.info_img, borderwidth=0,highlightthickness=0,command = lambda *args: self.toggle_dropdown(),relief="flat")
-        self.btn_info.place(in_=self.canvas,x=579.0,y=7.0,width=95.0,height=21.0)#width and height are 2 less than they should be: hack to fix white border on click #FIXME
 
-        if mode:  #Mode represents if its a search element or a result element
+        #TODO remake button assets to have at least 2px boarder around the "button" so when clicked it won't clip into the image
+        self.btn_info = Button(self.canvas,image=self.info_img, borderwidth=0,highlightthickness=0,command = lambda *args: self.toggle_dropdown(),relief="flat")
+        self.btn_info.place(in_=self.canvas,x=579.0,y=7.0,width=95.0,height=21.0)
+
+        if mode:  #Mode represents if its a search element (True) or a result element (False)
             self.btn_add = Button(self.canvas,image=self.add_img,borderwidth=0,highlightthickness=0,command = lambda: self.add_course_to_schedule(),relief="flat")
-            self.btn_add.place(in_=self.canvas,x=507.0,y=7.0,width=52.0,height=21.0) #width and height are 2 less than they should be: hack to fix white border on click #FIXME
+            self.btn_add.place(in_=self.canvas,x=507.0,y=7.0,width=52.0,height=21.0) 
         else:   
             self.btn_remove = Button(self.canvas,image=self.remove_img,borderwidth=0,highlightthickness=0,command = lambda: self.remove_course_from_schedule(),relief="flat")
-            self.btn_remove.place(in_=self.canvas,x=507.0,y=7.0,width=62.0,height=21.0) #width and height are 2 less than they should be: hack to fix white border on click #FIXME
+            self.btn_remove.place(in_=self.canvas,x=507.0,y=7.0,width=62.0,height=21.0) 
 
             self.btn_show = Button(self.canvas,image=self.hide_img,borderwidth=0,highlightthickness=0,command = lambda: self.toggle_show(),relief="flat")
-            self.btn_show.place(in_=self.canvas,x=600.0,
-                y=34.0,
-                width=52.0,
-                height=14.0) #width and height are 2 less than they should be: hack to fix white border on click #FIXME
+            self.btn_show.place(in_=self.canvas,x=600.0,y=34.0,width=52.0,height=14.0) 
 
 
         self.canvas.pack(pady = (5,0), padx = 0)
@@ -256,32 +291,21 @@ class ModernCourseElement(Frame):
         self.canvas.create_image(0,0, anchor=NW, image=self.banner_img)
 
         # Course Number
-
         title = self.dict["Title"].split(" ")
         title[1] = title[1][:3]
         self.canvas.create_text(14.0,9.0,anchor="nw",text=title ,fill="#FFFFFF",font=("IstokWeb Bold", 16 * -1, "bold"))
 
         self.canvas.create_text(20.0,30.0,anchor="nw",text=self.dict["Credit"] + " credits",fill="#FFFFFF",font=("IstokWeb Bold", 12 * -1, "bold"))
 
-        #Split this into 2 that sit on top of each other?
-        # canvas.create_text(170.0,9.0,anchor="nw",text="Monday/Wednesday: 615pm - 730 pm",fill="#FFFFFF",font=("IstokWeb Bold", 14 * -1))
 
-
-    def add_section(self, sec):#FIXME so this just uses dict and not separate argumens
+    def add_section(self, sec):
         color = "#ffffff"
         if self.num_sections % 2:
             color = "#dbdbdb"
 
-
-        # ["Title"], "", section["Instructor"], section["Days"], section["Time"], section["Room"], section["Enrolled"], section["Cap"], section["Showing"]
         section_frame = Canvas(self.section_list, width = 670, height = 24, bg=color, bd=0, highlightthickness=0)
 
-        #FIXME maybe make frames for each line, but that would drastically increase the complexity
-        # print(f'{title:<14}    {course_type:<14}    {instructor:<20}    {days:<20}    {time:<12}    {room:<12}')
-        # l = Label(section_frame, text = f'{title:<14}{course_type:<20}{instructor:<30}{days:<20}{str(time):<12}{room:<20}{enrolled:<20}', bg=color,font=("IstokWeb Bold", 12 * -1, "bold"))
-
         section_frame.create_text(5,5, text=sec["Title"], anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
-
 
         if sec["Open"]:
             section_frame.create_text(80,5, text="Open", anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
@@ -294,28 +318,25 @@ class ModernCourseElement(Frame):
         section_frame.create_text(380,5, text=sec["Room"], anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
         section_frame.create_text(550,5, text= str(sec["Enrolled"]) + "/" + str(sec["Cap"]) +" Enrolled", anchor="nw",font=("IstokWeb Bold", 10 * -1, "bold"))
 
-
+        
         var = BooleanVar()
         var.set(sec["Showing"])
 
-        
-
-        i = self.num_sections   #FIXME quick hack to get locla var instead of using pointer reference in th ebelow functrion
-        check = Checkbutton(section_frame, text = "",variable=var, command = lambda: self.testcheck(i,sec), bg=color, pady=0)
+        i = self.num_sections   
+        check = Checkbutton(section_frame, text = "",variable=var, command = lambda: self.add_section_to_cal(i,sec), bg=color, pady=0)
         self.check_list.append(var)
-
-        check.place(in_=section_frame, x=640, y = 0)
+        
+        if not self.mode:
+            check.place(in_=section_frame, x=640, y = 0)
 
         if sec["Showing"]:
             calender_component.add_to_cal(self, sec)
-
-
 
         self.num_sections+= 1
         section_frame.pack(anchor="nw")
 
 
-    def testcheck(self, i,sec): #TODO (rename this) update this so it changes the calender too
+    def add_section_to_cal(self, i,sec):
         sec["Showing"] = self.check_list[i].get()
 
         if self.check_list[i].get():
@@ -324,19 +345,15 @@ class ModernCourseElement(Frame):
         else:
             calender_component.remove_from_cal(sec)
 
-
-
         #Redraw the canvas
         calender_component.draw()
 
-        
 
-        # print(self.dict["Sections"][i]["Title"] + str(self.check_list[i].get()))
 
     def make_text(self):     
         #Find number of lines needing and manually wrap text
         t = self.dict["Description"].split(" ")
-        the_text = "                       " # Buffer hack for spaing on bold description
+        the_text = "                       " # Buffer hack for spacing on bold description
         line = ""
         for i in range(len(t)):
             if t[i][:1] == "\n":
@@ -400,18 +417,18 @@ class ModernCourseElement(Frame):
             self.dict["Showing"] = True
 
             # Set pallet back to normal
-            
             self.banner_img = banner_b
             self.body_img = body_b
             self.bg_color = "#ADD8E5"
             
 
+     
         self.draw_banner()
-        #TODO make a check if the body needs to be redrawn
-
-        # draw_cal()
+        if not self.canvas.winfo_height() <= 60:
+            self.make_text()
+  
         calender_component.draw()
-        # draw_header()
+
 
     def toggle_overlap(self, overlapping):  #FIXME finish implementing this?
        
@@ -458,41 +475,36 @@ class ModernCourseElement(Frame):
 
 
 
-    def add_course_to_schedule(self):   #FIXME
+    def add_course_to_schedule(self):
         if self.dict not in current_classes:
             current_classes.append(self.dict)
-
             
             ModernCourseElement(cur_courses_pane.interior,self.dict,mode=FALSE, type ="b")
             
-
-
             for section in self.dict["Sections"]:
                 if section["Showing"]:
                     for day in section["Days"]:
-                        calender_component.draw_class( day, " ".join(section["Title"]), section["Time"], color = "blue")   #FIXME trying to merge with the checklist
-
-        # draw_cal()
+                        calender_component.draw_class( day, " ".join(section["Title"]), section["Time"], color = "blue")
         calender_component.draw()
-        # draw_header()
+
 
 
     def remove_course_from_schedule(self):
         if(self.dict in current_classes):
             current_classes.remove(self.dict)
             
+        for section in self.dict["Sections"]:
+            calender_component.remove_from_cal(section)
         self.destroy()
-        # draw_cal()
+
         calender_component.draw()
     
-
 
 
 class VerticalScrolledFrame(ttk.Frame):
     def __init__(self, parent, *args, **kw):
         ttk.Frame.__init__(self, parent,*args, **kw)
 
- 
         # Create a canvas object and a vertical scrollbar for scrolling it.
         vscrollbar = ttk.Scrollbar(self, orient=VERTICAL)
         vscrollbar.pack(fill=Y, side=RIGHT, expand=FALSE)
@@ -508,8 +520,7 @@ class VerticalScrolledFrame(ttk.Frame):
  
         # Create a frame inside the canvas which will be scrolled with it.
         self.interior = Frame(self.canvas, width = 680,bg= "#FFECDC" )
-        self.interior.bind('<Configure>', self._configure_interior)   #FIXME
-        # self.canvas.bind('<Configure>', self._configure_canvas)
+        self.interior.bind('<Configure>', self._configure_interior)   
         self.interior_id = self.canvas.create_window(0, 0, window=self.interior, anchor=NW)
  
  
@@ -517,78 +528,15 @@ class VerticalScrolledFrame(ttk.Frame):
         # Update the scrollbars to match the size of the inner frame.
         size = (self.interior.winfo_reqwidth(), self.interior.winfo_reqheight())
         self.canvas.config(scrollregion=(0, 0, size[0], size[1]))
-        # if self.interior.winfo_reqwidth() != self.canvas.winfo_width():
-        #     # Update the canvas's width to fit the inner frame.
-        #     self.canvas.config(width = self.interior.winfo_reqwidth())
          
     def _configure_canvas(self, event):
         if self.interior.winfo_reqwidth() != self.canvas.winfo_width():
             # Update the inner frame's width to fill the canvas.
             self.canvas.itemconfigure(self.interior_id, width=self.canvas.winfo_width())
 
-
     def _clear_contents(self):
         for c in self.interior.winfo_children():
             c.destroy()
-
-
-
-theme = ["#6B3074", "#7268A6", "#8E8D8A", "#D8C3A5", "#EAE7DC"]
-
-loadData = []  # json.loads(open("scraped_classes.json", "r").read())
-
-current_classes = json.loads(open("saved_classes.json", "r").read())
-
-days = ["U", "M", "T", "W","R","F", "S"]
-
-
-# Indexes for shown results
-indxS= 1
-indxE = 0
-numResults = len(loadData)
-
-sleepTime = 20   #For timeout checks
-
-
-# Print initial time
-logger.info("Searching for webpage")
-
-# Set up browser connection     FIXME
-options = Options()
-options.add_argument("--headless")
-browser = webdriver.Firefox(options=options)
-browser.implicitly_wait(sleepTime)
-
-
-def time_to_str(time):
-    if type(time) is int:
-        ret = time
-        if ret > 1300:
-            ret -= 1200
-        
-        ret = str(ret)
-        
-
-        ret = ret[:-2] + ":" + ret[-2:]
-
-        if time >= 1200:
-            ret += "pm"
-        else:
-            ret += "am"
-        return ret
-    return ""
-
-
-
-
-   
-
-
-
-
-#FIXME this needs to be reimplemented
-
-
 
 
 
@@ -602,20 +550,29 @@ class CalenderElement(Frame):
         self.showing_sections = []
         self.parent_list = []
 
-        self.save_btn = Button(self.header, image=cal_save, bd = 0, highlightthickness=0)   #TODO make function to save png of button
+        self.save_btn = Button(self.header, image=cal_save, bd = 0, highlightthickness=0, command = self.screenshot)   #TODO make function to save png of button
         self.save_btn.place(in_=self.header, x = 497, y = 4, width = 33, height = 33)
 
         self.header.pack(pady=(0,0))
         self.canvas.pack(pady=(0,0))
+
+    def screenshot(self):   #TODO ensure that image is captured even if other windows are overlapping
+        ImageGrab.grab(bbox=(
+            self.winfo_rootx(),
+            self.winfo_rooty(),
+            self.winfo_rootx() + self.winfo_width(),
+            self.winfo_rooty() + self.winfo_height()
+        )).save("schedule.png")
 
     def add_to_cal(self,parent, section):
         self.showing_sections.append(section)
         self.parent_list.append(parent)
 
     def remove_from_cal(self, section):
-        idx = self.showing_sections.index(section)
-        self.showing_sections.pop(idx)
-        self.parent_list.pop(idx)
+        if section in self.showing_sections:
+            idx = self.showing_sections.index(section)
+            self.showing_sections.pop(idx)
+            self.parent_list.pop(idx)
 
     def draw(self):
         self.canvas.delete('all')
@@ -656,9 +613,9 @@ class CalenderElement(Frame):
         self.header.delete("all")
 
         try:
-            self.header.create_text(10,10, text = current_classes[0]["Term"], anchor = "nw", fill = "white", font=("IstokWeb", 20 * -1, "bold"))    #FIXME change this to use an actual semester and not hardcoded
+            self.header.create_text(10,10, text = current_classes[0]["Term"], anchor = "nw", fill = "white", font=("IstokWeb", 20 * -1, "bold"))    #FIXME change this to use an actual semester and not hardcoded to [0] (via semester thing?)
         except:
-            self.header.create_text(10,10, text = "No Semester Selected", anchor = "nw", fill = "white", font=("IstokWeb", 20 * -1, "bold"))    #FIXME change this to use an actual semester and not hardcoded
+            self.header.create_text(10,10, text = "No Semester Selected", anchor = "nw", fill = "white", font=("IstokWeb", 20 * -1, "bold"))    
 
 
 
@@ -700,7 +657,9 @@ class CalenderElement(Frame):
         time = timeStart - 700  #700 is offset for canvas   #FIXME change this formatting for placing classes to be cleaner?
         rem = time % 100
         y = (time // 100) * 40 + ((rem / 60) * 40) + 10
-        x = 17 +  days.index(day) * 75
+
+        keys = list(day_lookup.keys())
+        x = 17 +  keys.index(day) * 75
         lengthOff = (length // 100) * 40 + ((length % 100 / 60) * 40)
 
 
@@ -724,32 +683,18 @@ class CalenderElement(Frame):
 
         
 
-        
-
-
-        
-
 
 # Functions for changing display on pages  
 def change_displayed_courses(startI, endI):
     global result_courses_pane
-    # result_courses_pane._clear_contents()
-    # for c in result_courses_pane.interior.winfo_children():
-    #     c.destroy()
-    result_courses_pane.destroy()                               #FIXME quick hack for functionality
+
+    result_courses_pane.destroy()                               
     result_courses_pane = VerticalScrolledFrame(results)
     notebook.add_element(result_courses_pane, "results", 10, 10, anchor="nw")
 
-
     for entry in range(startI-1,endI):
-        
         ModernCourseElement(result_courses_pane.interior,loadData[entry], type = "b")
         
-     
-
-
-
-
 
 def next_page():
     global indxS, indxE
@@ -770,6 +715,7 @@ def prev_page():
         scroll_text['text'] = "Showing " + str(indxS) + "-" + str(indxE) + " of " + str(numResults)
         change_displayed_courses(indxS, indxE)
 
+
 def reset_page():
     global indxS, indxE, numResults
 
@@ -779,8 +725,6 @@ def reset_page():
     
     scroll_text['text'] = "Showing " + str(indxS) + "-" + str(indxE) + " of " + str(numResults)
     change_displayed_courses(indxS, indxE)
-
-
 
 
 
@@ -801,20 +745,12 @@ def check_if_ready(thread): #TODO use this thread to also update a loading image
 
 
         
-
-
 def fetch(term, dept ="", type = "", courseName = ""):
     global result_courses_pane, unavailable_classes_check
 
-    notebook.switch_tab(1)  #FIXME I was lazy so change this to be not hard coded to 1
-    
-    
+    notebook.switch_tab(1)  # Switch to the search results tab
 
-    # result_courses_pane._clear_contents()
-    # for c in result_courses_pane.interior.winfo_children():
-    #         c.destroy()
-
-    result_courses_pane.destroy()                               #FIXME quick hack for functionality
+    result_courses_pane.destroy()                               
     result_courses_pane = VerticalScrolledFrame(results)
     notebook.add_element(result_courses_pane, "results", 10, 10, anchor="nw")
 
@@ -829,7 +765,6 @@ def fetch(term, dept ="", type = "", courseName = ""):
         root.after(200, check_if_ready, thread)
         
     else:   
-        #TODO fix bg color
         Label(result_courses_pane.interior, image = invalid_search_img, anchor="center").pack(side=TOP, padx = 180)
 
         tkinter.messagebox.showerror(title="Search Box Error", message="INVALID SEARCH (make sure selected values are valid options)")
@@ -837,15 +772,10 @@ def fetch(term, dept ="", type = "", courseName = ""):
     
 
 
-
-
 def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
     global loadData
 
-     #TODO fix bg color
     Label(result_courses_pane.interior, image = searching_img, anchor="center", bg = "#FFECDC").pack(side=TOP, padx = 200)
-
-
 
     logger.info("Search query: %s, %s, %s, %s, %s",term, dept, type, courseName, desc)
 
@@ -873,7 +803,7 @@ def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
     tables = browser.find_elements(By.XPATH, '//table[contains(@cellpadding, "3")]')
     
     
-    end_time = time.localtime() #FIXME check to make sure this actually catches timeout errors
+    end_time = time.localtime() 
     diff = (time.mktime(end_time) - time.mktime(start_time)) 
     if(diff >= sleepTime and len(tables) == 0):     # Check for timeout issues
         logger.error("Timeout error occured")
@@ -897,7 +827,7 @@ def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
 
         seen_classes = [] # Record which 'parent' courses we have seen so far
 
-        for table in root.xpath('//table[contains(@cellpadding, "3")]'): #FIXME make this parsing better
+        for table in root.xpath('//table[contains(@cellpadding, "3")]'): #FIXME make this parsing better?
             try: #Get the title for the class
                 course_title = str(table.xpath(".//span[contains(@id,'lblCNum')]/text()")[0]).split(" ")
                 course_title[1] = course_title[1][:3]
@@ -909,11 +839,8 @@ def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
                     # Find the overall course
                     parent = list(filter(lambda course: course_title in course['Title'] , loadData))[0]
                     # Add a new section to the  parent
-
                     create_section(table, parent["Sections"])
    
-                    
-
                 else:   # We haven't seen the parent course yet
                     seen_classes.append(course_title)
 
@@ -963,9 +890,7 @@ def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
                     except:
                         pass
                     
-                    
-                    
-                       
+
                     create_section(table, dict["Sections"])
                     loadData.append(dict)
 
@@ -1012,7 +937,7 @@ def create_section(table, parent):
     except:
         pass
 
-    #FIXME add time conversion and day conversion here
+    #FIXME add time conversion and day conversion here?
     try:
         section["Time"] = int(table.xpath(".//span[contains(@id,'lblStartTime')]/text()")[0])
     except:
@@ -1053,8 +978,6 @@ def create_section(table, parent):
 
 
 
-
-
 def save_and_quit():
     global browser
     logger.info("Closing Program and saving chosen classes")
@@ -1076,10 +999,7 @@ logger.info("Creating GUI")
 
 
 root = Tk()
-
-
 root.configure(background='white')
-
 root.title('UR-Ready')  #Title for window
 root.geometry("1280x650")
 # root.option_add("*Font", ("Adobe Garamond Pro Bold", 10))
@@ -1087,114 +1007,101 @@ root.geometry("1280x650")
 root.protocol("WM_DELETE_WINDOW", save_and_quit)
 
 #===================== Load Assets =====================#
-
-OUTPUT_PATH = Path(__file__).parent
-ASSETS_PATH = OUTPUT_PATH / Path("assets")
-
-def relative_to_assets(path: str) -> Path:
-    return ASSETS_PATH / Path(path)
-
-
 btn_o_info = PhotoImage(
-    file=relative_to_assets("info_o.png"))
+    file="assets/info_o.png")
 btn_o_add = PhotoImage(
-    file=relative_to_assets("add_o.png"))
+    file="assets/add_o.png")
 banner_o = PhotoImage(
-    file=relative_to_assets("banner_o.png"))
+    file="assets/banner_o.png")
 body_o = PhotoImage(
-    file=relative_to_assets("body_o.png"))
+    file="assets/body_o.png")
 
 btn_b_info = PhotoImage(
-    file=relative_to_assets("info_b.png"))
+    file="assets/info_b.png")
 btn_b_add = PhotoImage(
-    file=relative_to_assets("add_b.png"))
+    file="assets/add_b.png")
 banner_b = PhotoImage(
-    file=relative_to_assets("banner_b.png"))
+    file="assets/banner_b.png")
 body_b = PhotoImage(
-    file=relative_to_assets("body_b.png"))
+    file="assets/body_b.png")
 
 btn_g_info = PhotoImage(
-    file=relative_to_assets("info_g.png"))
+    file="assets/info_g.png")
 btn_g_add = PhotoImage(
-    file=relative_to_assets("add_g.png"))
+    file="assets/add_g.png")
 banner_g = PhotoImage(
-    file=relative_to_assets("banner_g.png"))
+    file="assets/banner_g.png")
 body_g = PhotoImage(
-    file=relative_to_assets("body_g.png"))
+    file="assets/body_g.png")
 
 btn_show_img = PhotoImage(
-    file=relative_to_assets("show_g.png"))
+    file="assets/show_g.png")
 btn_hide_img = PhotoImage(
-    file=relative_to_assets("hide_b.png"))
+    file="assets/hide_b.png")
 btn_remove_b = PhotoImage(
-    file=relative_to_assets("remove_b.png"))
+    file="assets/remove_b.png")
 btn_remove_g = PhotoImage(
-    file=relative_to_assets("remove_g.png"))
+    file="assets/remove_g.png")
 
 
 search_up  = PhotoImage(
-    file=relative_to_assets("search_up.png"))
+    file="assets/search_up.png")
 res_up  = PhotoImage(
-    file=relative_to_assets("res_up.png"))
+    file="assets/res_up.png")
 sch_up = PhotoImage(
-    file=relative_to_assets("sch_up.png"))
+    file="assets/sch_up.png")
 req_up  = PhotoImage(
-    file=relative_to_assets("req_up.png"))
+    file="assets/req_up.png")
 info_up  = PhotoImage(
-    file=relative_to_assets("info_up.png"))
+    file="assets/info_up.png")
 
 info_down  = PhotoImage(
-    file=relative_to_assets("info_down.png"))
+    file="assets/info_down.png")
 search_down  = PhotoImage(
-    file=relative_to_assets("search_down.png"))
+    file="assets/search_down.png")
 res_down  = PhotoImage(
-    file=relative_to_assets("res_down.png"))
+    file="assets/res_down.png")
 sch_down = PhotoImage(
-    file=relative_to_assets("sch_down.png"))
+    file="assets/sch_down.png")
 req_down  = PhotoImage(
-    file=relative_to_assets("req_down.png"))
+    file="assets/req_down.png")
 
 tab_body  = PhotoImage(
-    file=relative_to_assets("folder_body.png"))
+    file="assets/folder_body.png")
 
 prev_btn_img  = PhotoImage(
-    file=relative_to_assets("last_btn.png"))
+    file="assets/last_btn.png")
 next_btn_img  = PhotoImage(
-    file=relative_to_assets("next_btn.png"))
+    file="assets/next_btn.png")
 
 searching_img  = PhotoImage(
-    file=relative_to_assets("searching_img.png"))
+    file="assets/searching_img.png")
 invalid_search_img  = PhotoImage(
-    file=relative_to_assets("invalid_search_img.png"))
+    file="assets/invalid_search_img.png")
 
 
 
 cal_blue  = PhotoImage(
-    file=relative_to_assets("cal_blue.png"))
+    file="assets/cal_blue.png")
 cal_red  = PhotoImage(
-    file=relative_to_assets("cal_red.png"))
+    file="assets/cal_red.png")
 cal_blue_bot  = PhotoImage(
-    file=relative_to_assets("cal_blue_bot.png"))
+    file="assets/cal_blue_bot.png")
 cal_red_bot  = PhotoImage(
-    file=relative_to_assets("cal_red_bot.png"))
+    file="assets/cal_red_bot.png")
 cal_save  = PhotoImage(
-    file=relative_to_assets("save.png"))
+    file="assets/save.png")
 cal_square  = PhotoImage(
-    file=relative_to_assets("rounded.png"))
+    file="assets/rounded.png")
 
 
 #Photo images for search widget
-bg_img = PhotoImage(file=relative_to_assets("search_bg.png"))
-search_btn_img = PhotoImage(file=relative_to_assets("search_btn.png"))
-search_long_img = PhotoImage(file=relative_to_assets("search_long.png"))
-search_short_img = PhotoImage(file=relative_to_assets("search_small.png"))
+bg_img = PhotoImage(file="assets/search_bg.png")
+search_btn_img = PhotoImage(file="assets/search_btn.png")
+search_long_img = PhotoImage(file="assets/search_long.png")
+search_short_img = PhotoImage(file="assets/search_small.png")
 
 #===================== Calender Component =====================#
-
-
-
-
-
 calender_component = CalenderElement(root, bd = 2, relief="solid")
 
 calender_component.pack(side=RIGHT, anchor = "n", pady = 10, padx = (2,2))
@@ -1202,11 +1109,7 @@ calender_component.pack(side=RIGHT, anchor = "n", pady = 10, padx = (2,2))
 calender_component.draw()
 
 
-
-
-
 #===================== Set Up Tabview =====================#
-
 class CustomTabview(Frame):
     def __init__(self, parent, *args, **kw):
         Frame.__init__(self, parent, *args, **kw)
@@ -1283,13 +1186,10 @@ notebook.add_tab("info",width = 1000,height = 1000,btn_imgs=(info_up, info_down)
 
 # notebook.add_tab("requirements",width = 1000,height = 1000, btn_imgs=(req_up, req_down)) #TODO implement this?
 
-
 notebook.pack(padx=5, pady=10)
 
 
-
 #===================== Search Component =====================#
-
 logger.info("Getting Combobox Values")
 
 try:
@@ -1300,8 +1200,6 @@ except:
 
 
 search_canvas = notebook.get("search")
-
-
 search_canvas.create_image(102,59, anchor = "nw", image= bg_img)
 
 
@@ -1415,14 +1313,10 @@ info_dump.insert(END, "It is in no way officially affiliated with the University
 info_dump.insert(END, "All of the data used to populate the results for this application is publically available via the University of Rochester's UR Course Descriptions / Course Schedules (CDCS) website. ")
 info_dump.insert(END, "All of the data in this application should be as up to date as possible, but any information on this application is not guaranteed to be accurate. ")
 
-info_dump.insert(END, "If you find any bugs or errors, please reach out at (include email here) and include the application's .log file.")  #FIXME
+info_dump.insert(END, "If you find any bugs or errors, please reach out at () and include the application's .log file.")  #FIXME add email
 
 info_dump.insert(END, "\n\n UR-Ready V3.0")
 notebook.add_element(info_dump, "info", 10, 20, anchor="nw")
-
-
-
-
 
  
 timeout_box = Entry(info, width=4)
@@ -1434,7 +1328,7 @@ notebook.add_element(Label(info, text=" Timeout Delay (Seconds)", font=("IstokWe
 logger.info("Starting GUI Program")
 
 root.bind_all("<Button-1>", lambda event: event.widget.focus_set())
-root.mainloop()
+root.mainloop() # Start the Tkinter App
 
 
 

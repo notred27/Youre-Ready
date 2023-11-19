@@ -7,3 +7,7 @@ figd_6L-J76Ei93ff0bIuM7dFjnG8FJMZ93uFdfapHEq4
 Tkinter-Designer ->gui -> python gui.py
 
 python pyinstaller urready.py --name UR_Ready
+
+python pyinstaller urready.py --name UR_Ready --onefile --add-data "assets/*.png;asset"
+
+#issue with onefile messing up image directory, think it is fixed now tho

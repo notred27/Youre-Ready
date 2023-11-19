@@ -1,0 +1,25 @@
+2023-10-31 22:19:32,900 - Searching for webpage
+2023-10-31 22:19:37,476 - Creating GUI
+2023-10-31 22:19:37,949 - Getting Combobox Values
+2023-10-31 22:19:38,459 - Starting GUI Program
+2023-10-31 22:20:08,705 - Search query: Fall 2023, CSC - Computer Science, Lecture, , 
+2023-10-31 22:20:08,940 - Connected to CDCS Webpage
+2023-10-31 22:20:09,907 - Form submitted to CDCS
+2023-10-31 22:20:11,324 - 62 results found 
+2023-10-31 22:20:11,541 - Scraping Thread has terminated, updating page
+2023-10-31 22:20:18,531 - Closing Program and saving chosen classes
+2023-10-31 22:25:21,105 - Searching for webpage
+2023-10-31 22:25:25,597 - Creating GUI
+2023-10-31 22:25:25,715 - Getting Combobox Values
+2023-10-31 22:25:26,134 - Starting GUI Program
+2023-10-31 22:25:32,123 - Closing Program and saving chosen classes
+2023-10-31 22:31:54,392 - Searching for webpage
+2023-10-31 22:31:58,847 - Creating GUI
+2023-10-31 22:31:58,950 - Getting Combobox Values
+2023-10-31 22:31:59,378 - Starting GUI Program
+2023-10-31 22:32:02,091 - Closing Program and saving chosen classes
+2023-10-31 22:32:30,489 - Searching for webpage
+2023-10-31 22:32:34,864 - Creating GUI
+2023-10-31 22:32:34,965 - Getting Combobox Values
+2023-10-31 22:32:35,468 - Starting GUI Program
+2023-10-31 22:32:54,579 - Closing Program and saving chosen classes
