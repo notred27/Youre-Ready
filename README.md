@@ -1,3 +1,4 @@
+![](header.png)
 # You're Ready!
 
 This is an application to be used as a class selector for students at the University of Rochester. Many students have expressed their dissatisfaction with the 
