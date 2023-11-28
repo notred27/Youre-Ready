@@ -6,21 +6,21 @@ are disconnected from each other. This project aims to connect all of these task
 
 # Features
 
-### Current Class Availability
+### <ins> Current Class Availability </ins>
 
 Easily search for classes by name, id, subject, course type, or other keywords! You can also choose to hide results for classes that have already been filled
 to avoid mistakes in planning. This information is kept up-to-date by using U of R's public [Course Description / Course Schedule](https://cdcs.ur.rochester.edu/) 
 database. 
 ![](search.PNG)
 
-### Group Courses Together
+### <ins> Group Courses Together </ins>
 
 While current university tools separate different course sections, this application groups all sections together by semester so you can easily choose the best time 
 for your schedule. No more sifting through pages upon pages of lab sections to search for a time that fits your needs. 
 
 ![](sch.PNG)
 
-### Class Schedule Builder
+### <ins> Class Schedule Builder </ins>
 
 Tired of not being able to immediately see if a new course will conflict with your other courses? Now chosen classes will pop up on a calendar side by side with the 
 classes you can choose from! Any conflicting classes will cause courses to become red on the schedule. You can also save an image of your schedule by using the button in the upper right-hand corner. 
