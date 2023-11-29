@@ -55,7 +55,8 @@ logger.addHandler(fh)
 
 day_lookup = {"U":"Sunday", "M":"Monday", "T":"Tuesday", "W":"Wednesday", "R":"Thursday", "F":"Friday", "S":"Saturday"}
 
-theme = ["#6B3074", "#7268A6", "#8E8D8A", "#D8C3A5", "#EAE7DC"]
+
+theme = ["#6B3074", "#7268A6", "#FFECDC"]
 
 loadData = []
 
@@ -102,16 +103,16 @@ def time_to_str(time):
 
 # Create something that merges the looks of the dropdown course menues with scrolable frames that act like comboboxes
 class CustomDropDown(Frame):
-    def __init__(self, parent,text,img, width,text_width, values, list_width=44, *args, **kw):
+    def __init__(self, parent,text,img, width,height, text_width, values, list_width=44,bg_color = theme[1], entry_color = "#B29EC6", entry_off = 5,*args, **kw):
         Frame.__init__(self, parent, *args, **kw)
         self.text = text
         self.values = values
 
         # Create canvas and entry box
-        self.canvas = Canvas(self, width = width, height = 60, bg= "#7268A6", bd=0,highlightthickness=0)
+        self.canvas = Canvas(self, width = width, height = height, bg= bg_color, bd=0,highlightthickness=0)
         self.canvas.create_image(2,2, anchor = "nw", image= img)
-        self.entry = Entry(self,bg="#B29EC6",fg= "#f2f4f1",font=("IstokWeb Bold", 20 * -1),bd=0, width = text_width)
-        self.entry.place(in_=self.canvas, x=5, y = 27, anchor="w")
+        self.entry = Entry(self,bg=entry_color,fg= "#f2f4f1",font=("IstokWeb Bold", 20 * -1),bd=0, width = text_width)
+        self.entry.place(in_=self.canvas, x=entry_off, y = 27, anchor="w")
         self.entry.insert(0, self.text)
 
         
@@ -166,7 +167,6 @@ class CustomDropDown(Frame):
         if value == '':
             for i in range(len(self.values)):
                 self.list.insert(self.list.size(), self.values[i])
-            
 
         else:
             data = []
@@ -185,7 +185,6 @@ class CustomDropDown(Frame):
     def select_option(self, event):
         # Used to select a value from the drop down list
         try:  
-            print(self.entry.get(), self.list.selection_get())
             if self.list.selection_get() in self.values: 
                 if self.entry.get() != self.list.selection_get():
                     self.entry.delete(0,len(self.entry.get()))
@@ -212,9 +211,7 @@ class ModernCourseElement(Frame):
         self.mode = mode
 
         self.check_list = []
-        
         self.cur_color = type
-
         self.num_sections = 0
 
         if self.type == "b":
@@ -229,7 +226,7 @@ class ModernCourseElement(Frame):
             self.banner_img = banner_o
             self.body_img = body_o
             self.bg_color = "#FFF684"
-        else: #TYPE == "G"
+        else: #TYPE == "G" #Defalt case for gray
             self.add_img = btn_g_add
             self.info_img = btn_g_info
             self.banner_img = banner_g
@@ -240,8 +237,8 @@ class ModernCourseElement(Frame):
         self.hide_img = btn_hide_img
         self.remove_img = btn_remove_b
 
-        self.canvas = Canvas(self, bg = "#FFECDC",height = 54,width = 685,bd = 0,highlightthickness = 0,relief = "ridge")
-        self.configure(background = "#FFECDC")
+        self.canvas = Canvas(self, bg = theme[2],height = 54,width = 685,bd = 0,highlightthickness = 0,relief = "ridge")
+        self.configure(background = theme[2])
         self.canvas.create_rectangle(0,0,681.0,54,fill="#EDEDED",outline="")
         self.draw_banner()
 
@@ -270,10 +267,9 @@ class ModernCourseElement(Frame):
             for section in dict["Sections"]:
                 self.add_section(section)
 
-
         except Exception as e:
-            print(e)
-            pass
+            logger.error(e)
+            
 
 
 
@@ -421,8 +417,6 @@ class ModernCourseElement(Frame):
             self.body_img = body_b
             self.bg_color = "#ADD8E5"
             
-
-     
         self.draw_banner()
         if not self.canvas.winfo_height() <= 60:
             self.make_text()
@@ -508,7 +502,7 @@ class VerticalScrolledFrame(ttk.Frame):
         # Create a canvas object and a vertical scrollbar for scrolling it.
         vscrollbar = ttk.Scrollbar(self, orient=VERTICAL)
         vscrollbar.pack(fill=Y, side=RIGHT, expand=FALSE)
-        self.canvas = Canvas(self, bd=0, highlightthickness=0, bg='#FFECDC',
+        self.canvas = Canvas(self, bd=0, highlightthickness=0, bg=theme[2],
                                 width = 690, height = 470,
                                 yscrollcommand=vscrollbar.set)
         self.canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
@@ -519,7 +513,7 @@ class VerticalScrolledFrame(ttk.Frame):
         self.canvas.yview_moveto(0)
  
         # Create a frame inside the canvas which will be scrolled with it.
-        self.interior = Frame(self.canvas, width = 680,bg= "#FFECDC" )
+        self.interior = Frame(self.canvas, width = 680,bg= theme[2])
         self.interior.bind('<Configure>', self._configure_interior)   
         self.interior_id = self.canvas.create_window(0, 0, window=self.interior, anchor=NW)
  
@@ -544,8 +538,8 @@ class CalenderElement(Frame):
     def __init__(self, parent, *args, **kw):
         Frame.__init__(self, parent, *args, **kw)
 
-        self.header= Canvas(self, width = 535, height = 35, background=theme[0])
-        self.canvas= Canvas(self, width = 535, height = 580)
+        self.header= Canvas(self, width = 535, height = 40, background=theme[0],bd = 0, highlightthickness=0)
+        self.canvas= Canvas(self, width = 535, height = 580, bd = 0, highlightthickness=0)
 
         self.showing_sections = []
         self.parent_list = []
@@ -617,8 +611,6 @@ class CalenderElement(Frame):
         except:
             self.header.create_text(10,10, text = "No Semester Selected", anchor = "nw", fill = "white", font=("IstokWeb", 20 * -1, "bold"))    
 
-
-
         # Courses text
         num_courses = 0
         for i, sec in enumerate(self.showing_sections):
@@ -627,18 +619,17 @@ class CalenderElement(Frame):
         
         self.header.create_image(297,19, image = cal_square, anchor = "center")
         self.header.create_text(298,19, text = str(num_courses), anchor = "center", fill = theme[0], font=("IstokWeb", 14 * -1, "bold"))
-        self.header.create_text(318,20, text = "courses", anchor = "w", fill = "white", font=("IstokWeb", 14 * -1))
+        self.header.create_text(318,20, text = "courses", anchor = "w", fill = "white")
         
-
         # Credits text
         num_credits = int(self.get_num_credits())
 
         self.header.create_image(392,19, image = cal_square, anchor = "center")
         self.header.create_text(393,19, text = str(num_credits), anchor = "center", fill = theme[0],font=("IstokWeb", 14 * -1, "bold"))
         if num_credits >= 20:
-            self.header.create_text(413,19, text = "credits (OL!)", anchor = "w", fill = "white", font=("IstokWeb", 14 * -1))
+            self.header.create_text(413,19, text = "credits (OL!)", anchor = "w", fill = "white")
         else:
-            self.header.create_text(413,19, text = "credits", anchor = "w", fill = "white", font=("IstokWeb", 14 * -1))
+            self.header.create_text(413,19, text = "credits", anchor = "w", fill = "white")
 
 
     def get_num_credits(self):  #FIXME change this to depend on the sections (although you will need to refer to the parent dict to get the credit value)
@@ -673,8 +664,6 @@ class CalenderElement(Frame):
             self.canvas.create_image(x,y + lengthOff  - 15,image=cal_red_bot, anchor = "nw") 
 
             self.canvas.create_rectangle(x ,y + 15 ,x + 72,y + lengthOff  - 15, fill = "#D51515", width = 0) 
-
-        
 
         self.canvas.create_text(x + 5, y + 5, anchor="nw", text = title, fill  = 'white',font=("IstokWeb", 10 * -1, "bold") )
         self.canvas.create_text(x + 5, y + 20, anchor="nw", text = time_to_str(timeStart)[:-2] + "-" + time_to_str(timeStart + length)[:-2], fill  = 'white',font=("IstokWeb", 9 * -1))
@@ -728,7 +717,7 @@ def reset_page():
 
 
 
-def check_if_ready(thread): #TODO use this thread to also update a loading image in the search canvas??
+def check_if_ready(thread): 
     # Function for threading the fetch request to backend website
     if thread.is_alive():
         # not ready yet, run the check again soon
@@ -741,7 +730,7 @@ def check_if_ready(thread): #TODO use this thread to also update a loading image
 
             
         reset_page()
-        #somehow get the value of the thread here to set special flag images (i.e. no results/invalid search)   #TODO
+        #somehow get the value of the thread here to set special flag images? (i.e. no results/invalid search)   #TODO
 
 
         
@@ -775,7 +764,7 @@ def fetch(term, dept ="", type = "", courseName = ""):
 def scrapeHTML(term, dept ="", type = "", courseName = "", desc = ""):
     global loadData
 
-    Label(result_courses_pane.interior, image = searching_img, anchor="center", bg = "#FFECDC").pack(side=TOP, padx = 200)
+    Label(result_courses_pane.interior, image = searching_img, anchor="center", bg = theme[2]).pack(side=TOP, padx = 200)
 
     logger.info("Search query: %s, %s, %s, %s, %s",term, dept, type, courseName, desc)
 
@@ -997,12 +986,11 @@ def save_and_quit():
 # Set up the root window for the app
 logger.info("Creating GUI")
 
-
 root = Tk()
 root.configure(background='white')
 root.title('UR-Ready')  #Title for window
 root.geometry("1280x650")
-# root.option_add("*Font", ("Adobe Garamond Pro Bold", 10))
+root.option_add("*Font", ("IstokWeb", 14 * -1))
 
 root.protocol("WM_DELETE_WINDOW", save_and_quit)
 
@@ -1094,6 +1082,9 @@ cal_save  = PhotoImage(
 cal_square  = PhotoImage(
     file="assets/rounded.png")
 
+semester_tab  = PhotoImage(
+    file="assets/semester_tab.png")
+
 
 #Photo images for search widget
 bg_img = PhotoImage(file="assets/search_bg.png")
@@ -1102,7 +1093,7 @@ search_long_img = PhotoImage(file="assets/search_long.png")
 search_short_img = PhotoImage(file="assets/search_small.png")
 
 #===================== Calender Component =====================#
-calender_component = CalenderElement(root, bd = 2, relief="solid")
+calender_component = CalenderElement(root, bd = 0, relief="solid")
 
 calender_component.pack(side=RIGHT, anchor = "n", pady = 10, padx = (2,2))
 
@@ -1180,12 +1171,8 @@ class CustomTabview(Frame):
 notebook = CustomTabview(root, height = 600, width = 400)
 notebook.add_tab("search", width = 1000,height = 1000, btn_imgs=(search_up,search_down))
 notebook.add_tab("results",width = 1000,height = 1000, btn_imgs=(res_up, res_down))
-notebook.add_tab("schedual",width = 1000,height = 1000,btn_imgs=(sch_up, sch_down))
-
+notebook.add_tab("schedule",width = 1000,height = 1000,btn_imgs=(sch_up, sch_down))
 notebook.add_tab("info",width = 1000,height = 1000,btn_imgs=(info_up, info_down))
-
-# notebook.add_tab("requirements",width = 1000,height = 1000, btn_imgs=(req_up, req_down)) #TODO implement this?
-
 notebook.pack(padx=5, pady=10)
 
 
@@ -1204,49 +1191,53 @@ search_canvas.create_image(102,59, anchor = "nw", image= bg_img)
 
 
 # 1st long bar
-semester_box = CustomDropDown(search_canvas,text = "Semester (REQUIRED):", values = (xmlSrc.xpath('//*[@id="ddlTerm"]/option/text()')), width = 286, img = search_long_img, text_width = 25)
-semester_box.place(in_=search_canvas, x=123,y=85)
+
+# tmpc = Canvas(notebook.tab_frame, width=200,height=50)
+semester_box = CustomDropDown(notebook,text = "Semester (REQUIRED):", values = (xmlSrc.xpath('//*[@id="ddlTerm"]/option/text()')), width = 172, height = 50, img = semester_tab, text_width = 12, list_width=21, bg_color="#FFFFFF", entry_color=theme[1], entry_off=14)
+semester_box.place(in_=notebook, x=550,y=0)
+# tmpc.pack()
 
 try:
     semester_box.values.remove("SELECT A TERM")
 except:
     logger.warning("SELECT A TERM text no longer on webpage")
 
+semester_box.entry.delete(0,len(semester_box.entry.get()))
+semester_box.entry.insert(0, semester_box.values[0])
+
 
 # 2nd long bar
 vals = (xmlSrc.xpath('//*[@id="ddlDept"]/option/text()'))
 vals.insert(0,"")
 
-subject_box = CustomDropDown(search_canvas,text = "Subject:", values = vals, width = 286, img = search_long_img, text_width = 25)
-subject_box.place(in_=search_canvas, x=123,y=161)
+subject_box = CustomDropDown(search_canvas,text = "Subject:", values = vals, width = 286,height = 60, img = search_long_img, text_width = 25)
+subject_box
+subject_box.place(in_=search_canvas, x=123,y=85)
 
 # 3rd long bar
 vals =  (xmlSrc.xpath('//*[@id="ddlTypes"]/option/text()'))
 vals.insert(0,"")
 
-course_box = CustomDropDown(search_canvas,text = "Course Type:", values = vals, width = 286, img = search_long_img, text_width = 25)
-course_box.place(in_=search_canvas, x=123,y=237)
+course_box = CustomDropDown(search_canvas,text = "Course Type:", values = vals, width = 286,height = 60, img = search_long_img, text_width = 25)
+course_box.place(in_=search_canvas, x=123,y=161)
 
 # 1st short bar
-id_box = CustomDropDown(search_canvas,text = "Course ID:", values = None, width = 146, img = search_short_img, text_width = 12, list_width=21)
+id_box = CustomDropDown(search_canvas,text = "Course ID:", values = None, width = 146,height = 60, img = search_short_img, text_width = 12, list_width=21)
 id_box.place(in_=search_canvas, x=429,y=85)
 
 # 2nd short bar
-keywords_box = CustomDropDown(search_canvas,text = "Keywords:", values = None, width = 146, img = search_short_img, text_width = 12, list_width=21)
+keywords_box = CustomDropDown(search_canvas,text = "Keywords:", values = None, width = 146,height=60, img = search_short_img, text_width = 12, list_width=21)
 keywords_box.place(in_=search_canvas, x=429,y=161)
 
 # Checkbutton for hiding unavailable classes
 
 hide_unavailable_var = tkinter.IntVar()
-check_btn = Checkbutton(search_canvas,bd=0,highlightthickness=0, background="#7268A6", activebackground="#7268A6",variable= hide_unavailable_var)
-check_btn.place(in_=search_canvas, x = 361,y =310)
-search_canvas.create_text(386.0,311.0,anchor="nw",text="Hide unavailable classes",fill="#FFFFFF",font=("IstokWeb Bold", 16 * -1))
+check_btn = Checkbutton(search_canvas,bd=0,highlightthickness=0, background=theme[1], activebackground=theme[1],variable= hide_unavailable_var)
+check_btn.place(in_=search_canvas, x = 148,y =260)
+search_canvas.create_text(173.0,261.0,anchor="nw",text="Hide unavailable classes",fill="#FFFFFF",font=("IstokWeb Bold", 16 * -1))
 
 #Keep lift order so widgets don't obscure each other
-semester_box.lift(aboveThis=subject_box)
-semester_box.lift(aboveThis=course_box)
 subject_box.lift(aboveThis=course_box)
-semester_box.lift(aboveThis=check_btn)
 subject_box.lift(aboveThis=check_btn)
 course_box.lift(aboveThis=check_btn)
 id_box.lift(aboveThis=keywords_box)
@@ -1264,11 +1255,10 @@ results = notebook.get("results")
 scroll_next = Button(results, image = next_btn_img, command=next_page, anchor="ne", bd = 0, highlightthickness=0)
 notebook.add_element(scroll_next, "results", 645, 490)
 
-
 scroll_prev = Button(results, image=prev_btn_img, command=prev_page, anchor="nw", bd = 0, highlightthickness=0)
 notebook.add_element(scroll_prev, "results", 25, 490)
 
-scroll_text = Label(results, text="Showing " + str(indxS) + "-" + str(indxE) + " of " + str(numResults), font=("IstokWeb", 14 * -1, "bold"), bg="#FFECDC")
+scroll_text = Label(results, text="Showing " + str(indxS) + "-" + str(indxE) + " of " + str(numResults), font=("IstokWeb", 14 * -1, "bold"), bg=theme[2])
 notebook.add_element(scroll_text, "results", 335, 500, anchor="center")
 
 result_courses_pane = VerticalScrolledFrame(results)
@@ -1276,9 +1266,9 @@ notebook.add_element(result_courses_pane, "results", 10, 10, anchor="nw")
 
 
 #===================== Current Courses Component =====================#
-classes = notebook.get("schedual")
+classes = notebook.get("schedule")
 cur_courses_pane = VerticalScrolledFrame(classes)
-notebook.add_element(cur_courses_pane, "schedual", 10, 10, anchor="nw")
+notebook.add_element(cur_courses_pane, "schedule", 10, 10, anchor="nw")
 
 # Load all of the current saved clsses into the scroll pane
 for entry in range(0,len(current_classes)):
@@ -1306,7 +1296,7 @@ def change_timeout(new_time):
     
 info = notebook.get("info")
 
-info_dump = Text(info, width = 90, wrap=WORD,font=("IstokWeb", 12 * -1), bg="#FFECDC", bd=0, highlightthickness=0 )
+info_dump = Text(info, width = 90, wrap=WORD,font=("IstokWeb", 12 * -1), bg=theme[2], bd=0, highlightthickness=0 )
       
 info_dump.insert(END, "This application was created for recreational use, and is only intended to aid students in finding classes. ")
 info_dump.insert(END, "It is in no way officially affiliated with the University of Rochester. ")
@@ -1323,7 +1313,7 @@ timeout_box = Entry(info, width=4)
 timeout_box.insert(0,str(sleepTime))
 timeout_box.bind('<KeyRelease>', (lambda event: change_timeout(timeout_box.get())))
 notebook.add_element(timeout_box, "info", 10, 500, anchor="nw")
-notebook.add_element(Label(info, text=" Timeout Delay (Seconds)", font=("IstokWeb", 14 * -1, "bold"), bg="#FFECDC"), "info", 35, 500, anchor="nw")
+notebook.add_element(Label(info, text=" Timeout Delay (Seconds)", font=("IstokWeb", 14 * -1, "bold"), bg=theme[2]), "info", 35, 500, anchor="nw")
 
 logger.info("Starting GUI Program")
 
