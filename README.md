@@ -25,6 +25,8 @@ for your schedule. No more sifting through pages upon pages of lab sections to s
 Tired of not being able to immediately see if a new course will conflict with your other courses? Now chosen classes will pop up on a calendar side by side with the 
 classes you can choose from! Any conflicting classes will cause courses to become red on the schedule. You can also save an image of your schedule by using the button in the upper right-hand corner. 
 
+![](assets/sch2.PNG)
+
 # Future Plans
 
 Future features planned for this application include a way to save multiple schedules so you can plan out backups in case your selected classes get filled when 
